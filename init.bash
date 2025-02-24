@@ -261,6 +261,9 @@ pip3 install --trusted-host pypi.org --trusted-host files.pythonhosted.org -r $i
 echo ""; echo "== Installing Huggingface Hub"
 pip3 install --trusted-host pypi.org --trusted-host files.pythonhosted.org -U "huggingface_hub[cli]" || error_exit "HuggingFace Hub CLI install/upgrade failed"
 
+export COMFYUI_PATH=`pwd`
+echo ""; echo "-- COMFYUI_PATH: ${COMFYUI_PATH}"
+
 # Install SageAttention - conditional
 if [ "${INSTALL_SAGEATTENTION}" == "true" ]; then
   echo ""; echo "== Installing SageAttention"
@@ -281,10 +284,8 @@ if [ "${INSTALL_SAGEATTENTION}" == "true" ]; then
     cd .. || error_exit "Failed to cd .."
     rm -rf "${SA_TEMP_DIR}" # Clean up temp directory
   fi
+  cd ${COMFYUI_PATH}
 fi
-
-export COMFYUI_PATH=`pwd`
-echo ""; echo "-- COMFYUI_PATH: ${COMFYUI_PATH}"
 
 # Install ComfyUI Manager if not already present
 echo ""
