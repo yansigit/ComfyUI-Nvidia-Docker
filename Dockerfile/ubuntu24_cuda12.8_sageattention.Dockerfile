@@ -73,7 +73,6 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
 RUN it="/etc/comfyuser_dir"; echo ${COMFYUSER_DIR} > $it && chmod 555 $it
 
 ENV NVIDIA_VISIBLE_DEVICES=all
-ENV INSTALL_SAGEATTENTION=true
 
 EXPOSE 8188
 
@@ -83,5 +82,7 @@ COPY --chown=comfy:comfy --chmod=555 init.bash comfyui-nvidia_init.bash
 
 ARG BUILD_DATE="unknown"
 LABEL comfyui-nvidia-docker-build=${BUILD_DATE}
+
+ENV INSTALL_SAGEATTENTION=true
 
 CMD [ "./comfyui-nvidia_init.bash" ]
