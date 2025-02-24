@@ -264,10 +264,23 @@ pip3 install --trusted-host pypi.org --trusted-host files.pythonhosted.org -U "h
 # Install SageAttention - conditional
 if [ "${INSTALL_SAGEATTENTION}" == "true" ]; then
   echo ""; echo "== Installing SageAttention"
-  git clone https://github.com/thu-ml/SageAttention.git || error_exit "SageAttention clone failed"
-  cd SageAttention || error_exit "Failed to cd SageAttention"
-  python setup.py install || error_exit "SageAttention install failed"
-  cd .. || error_exit "Failed to cd .."
+  # Use temp directory for SageAttention installation
+  SA_TEMP_DIR="${itdir}/SageAttention_temp"
+  if [ ! -d "${SA_TEMP_DIR}" ]; then
+    mkdir -p "${SA_TEMP_DIR}" || error_exit "Failed to create temp dir for SageAttention"
+  fi
+
+  # Check if SageAttention is already installed
+  if pip3 list | grep -q "SageAttention"; then
+    echo "== SageAttention already installed, skipping installation"
+  else
+    echo "== Installing SageAttention to temp directory: ${SA_TEMP_DIR}"
+    git clone https://github.com/thu-ml/SageAttention.git "${SA_TEMP_DIR}" || error_exit "SageAttention clone failed"
+    cd "${SA_TEMP_DIR}" || error_exit "Failed to cd SageAttention temp dir"
+    python setup.py install || error_exit "SageAttention install failed"
+    cd .. || error_exit "Failed to cd .."
+    rm -rf "${SA_TEMP_DIR}" # Clean up temp directory
+  fi
 fi
 
 export COMFYUI_PATH=`pwd`
