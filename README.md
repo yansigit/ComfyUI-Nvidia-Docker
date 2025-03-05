@@ -1,7 +1,7 @@
 <h1>ComfyUI (NVIDIA) Docker</h1>
 
 - runs in [containers](https://blg.gkr.one/20240501-docker101/) for enhanced host OS separation
-  - work with `docker` (and `compose`) or `podman` + `WSL2` on Windows
+  - work with `docker` (and `compose`) or `podman` using `Windows Subsystem for Linux 2` (WSL2) on Windows (using a Linux Guest Virtual Machine on your Windows host)
 - can run multiple setups with an independent `run` folder (for virtual environment management and source code) shared `basedir` folder (for user files, input, output, custom nodes, models, etc.)
 - drops privileges to a regular user/preserves user permissions with custom UID/GID mapping (the running user's `id -u` and `id -g` as specified on the command line)
 - Integrated `ComfyUI-Manager` for hassle-free updates
@@ -501,9 +501,22 @@ For example: `python3 /comfy/mnt/custom_nodes/ComfyUI-Manager/cm-cli.py show ins
 ## 5.5. Shell within the Docker image
 
 When starting a `docker exec -it comfyui-nvidia /bin/bash` (or getting a `bash` terminal from `docker compose`), you will be logged in as the `comfytoo` user.
-Switch to the `comfy` user with: `sudo su -l comfy`.
-As the `comfy` user you will be using the `WANTED_UID` and `WANTED_GID` provided. You will be able to `cd` into the mounted locations for the `run` and `basedir` folders, `source /comfy/mnt/venv/bin/activate` to get the virtual environment activated (allowing you to perfom `pip3 install` operations), and other operations that the `comfy` user is allowed to perform.
 
+Switch to the `comfy` user with:
+```bash
+sudo su -l comfy
+```
+
+As the `comfy` user you will be using the `WANTED_UID` and `WANTED_GID` provided. 
+You will be able to `cd` into the mounted locations for the `run` and `basedir` folders. 
+
+```bash
+source /comfy/mnt/venv/bin/activate
+```
+
+to get the virtual environment activated (allowing you to perfom `pip3 install` operations as those will be done within the `run` folder, so outside of the container), and other operations that the `comfy` user is allowed to perform.
+
+**Note:** as a reminder the `comfy` user is `sudo` capable, but `apt` commands might not persist a container restart, use the `user_script.bash` method to perform `apt` installs when the container is started.
 
 ## 5.6. Additional FAQ
 
@@ -514,7 +527,16 @@ See [extras/FAQ.md] for additional FAQ topics, among which:
 
 ### 5.6.1. Windows: WSL2 and podman
 
-The container can be used on Windows using WSL2. In the following, we will describe the method to use the `podman` command line interface. For Docker Desktop users, please see https://docs.docker.com/desktop/features/gpu/ for details on how to enable GPU support with Docker.
+The container can be used on Windows using "Windows Subsystem for Linux 2" (WSL2). 
+For additional details on WSL, please read https://learn.microsoft.com/en-us/windows/wsl/about
+For additional details on podman, please read https://docs.podman.io/latest/getting_started/
+
+WSL2 is a Linux guest Virtual Machine on a Windows host (for a slightly longer understanding of what this means, please see the first section of https://blg.gkr.one/20240501-docker101/).
+The started container is Linux based (Ubuntu Linux) that will perform a full installation of ComfyUI from sources.
+Some experience with the Linux and Python command line interface is relevant for any modifictions of the virtual environment of container post container start.
+
+
+In the following, we will describe the method to use the `podman` command line interface. For Docker Desktop users, please see https://docs.docker.com/desktop/features/gpu/ for details on how to enable GPU support with Docker.
 
 First, follow the steps in Section 2 ("Getting Started with CUDA on WSL 2") of https://docs.nvidia.com/cuda/wsl-user-guide/index.html
 
