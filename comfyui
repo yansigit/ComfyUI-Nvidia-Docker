@@ -1,19 +1,26 @@
+#!/bin/bash
+
+CUDA_VERSION=${2:-12.5.1}
+
 if [ "$1" == "build" ]; then
-  if ! docker images -q "attn-builder" 1>/dev/null; then
-    docker build -f Dockerfile/attn/ubuntu24_cuda12.8-attn-builder.Dockerfile -t attn-builder .
+  if [ -z "$(docker images -q | grep -E 'attn-builder')" ]; then
+    docker build -f Dockerfile/attn/ubuntu24_cuda${CUDA_VERSION}-attn-builder.Dockerfile -t attn-builder .
   fi
   docker run --rm -v ./builds:/builds attn-builder
 fi
 
 if [ "$1" == "run" ]; then
-  if ! docker images -q "comfyui-attn-runtime" 1>/dev/null; then
-    docker build -f Dockerfile/attn/ubuntu24_cuda12.8-attn.Dockerfile -t comfyui-attn-runtime .
+  if ! docker images | grep -E '^comfyui-attn-runtime\s' 1>/dev/null; then
+    docker build -f Dockerfile/ubuntu24_cuda${CUDA_VERSION}.Dockerfile -t comfyui-attn-runtime .
   fi
+  cat ./attn.bash > /opt/comfyui/run/user_script.bash
+  
   docker run --rm -it \
     --gpus all \
     -v /opt/comfyui/run:/comfy/mnt \
     -v /opt/comfyui/basedir:/basedir \
     -v /mnt/d/Images/:/mnt/d/Images/ \
+    -v ./builds:/builds \
     -e WANTED_UID=$(id -u) \
     -e WANTED_GID=$(id -g) \
     -e BASE_DIRECTORY=/basedir \

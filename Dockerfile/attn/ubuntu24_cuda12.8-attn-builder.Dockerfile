@@ -8,14 +8,12 @@ ENV NV_CUDNN_PACKAGE="libcudnn9-cuda-12=${NV_CUDNN_VERSION}"
 LABEL com.nvidia.cudnn.version="${NV_CUDNN_VERSION}"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  git python3-pip python3-dev python-is-python3 python3.12-venv \
+  git sudo curl wget python3-pip python3-dev python-is-python3 python3.12-venv \
   ${NV_CUDNN_PACKAGE} \
   && apt-mark hold ${NV_CUDNN_PACKAGE_NAME}
 
 VOLUME /builds
 WORKDIR /run
-
-USER ubuntu
 
 COPY --chown=ubuntu:ubuntu attn-build.bash /run/attn-build.bash
 RUN chmod +x /run/attn-build.bash
