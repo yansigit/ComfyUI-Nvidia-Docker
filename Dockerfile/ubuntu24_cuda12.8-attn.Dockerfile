@@ -1,4 +1,40 @@
-FROM nvidia/cuda:12.8.0-devel-ubuntu24.04
+FROM nvidia/cuda:12.8.0-devel-ubuntu24.04 AS builder
+
+# Adapted from https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/12.8.0/ubuntu2404/devel/cudnn/Dockerfile
+ENV NV_CUDNN_VERSION=9.7.0.66-1
+ENV NV_CUDNN_PACKAGE_NAME="libcudnn9-cuda-12"
+ENV NV_CUDNN_PACKAGE="libcudnn9-cuda-12=${NV_CUDNN_VERSION}"
+ENV TORCH_CUDA_ARCH_LIST="Ampere"
+
+LABEL com.nvidia.cudnn.version="${NV_CUDNN_VERSION}"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  git python3-pip python3-dev python-is-python3 python3.12-venv \
+  ${NV_CUDNN_PACKAGE} \
+  && apt-mark hold ${NV_CUDNN_PACKAGE_NAME}
+
+RUN mkdir /builds
+RUN git clone https://github.com/thu-ml/SageAttention.git && \
+  cd SageAttention && \
+  python3 -m venv venv && \
+  . venv/bin/activate && \
+  pip3 install setuptools wheel packaging && \
+  pip3 install --pre torch torchaudio torchvision --index-url https://download.pytorch.org/whl/nightly/cu128 && \
+  pip3 install -e . && \
+  python setup.py bdist_wheel && \
+  cp dist/*.whl /builds
+
+RUN git clone https://github.com/thu-ml/SpargeAttn.git && \
+  cd SpargeAttn && \
+  python3 -m venv venv && \
+  . venv/bin/activate && \
+  pip3 install setuptools wheel packaging && \
+  pip3 install --pre torch torchaudio torchvision --index-url https://download.pytorch.org/whl/nightly/cu128 && \
+  pip3 install -e . && \
+  python setup.py bdist_wheel && \
+  cp dist/*.whl /builds
+
+FROM nvidia/cuda:12.8.0-runtime-ubuntu24.04 AS base
 
 # Adapted from https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/12.8.0/ubuntu2404/devel/cudnn/Dockerfile
 ENV NV_CUDNN_VERSION=9.7.0.66-1
@@ -11,7 +47,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   ${NV_CUDNN_PACKAGE} \
   && apt-mark hold ${NV_CUDNN_PACKAGE_NAME}
 
-ARG BASE_DOCKER_FROM=nvidia/cuda:12.8.0-devel-ubuntu24.04
+ARG BASE_DOCKER_FROM=nvidia/cuda:12.8.0-runtime-ubuntu24.04
 ##### Base
 
 # Install system packages
@@ -70,7 +106,7 @@ COPY --chmod=555 init.bash /comfyui-nvidia_init.bash
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 # Create a new group for the comfy and comfytoo users
-RUN groupadd -g 1024 comfy \ 
+RUN groupadd -g 1024 comfy \
   && groupadd -g 1025 comfytoo
 
 # The comfy (resp. comfytoo) user will have UID 1024 (resp. 1025), 
@@ -93,6 +129,9 @@ EXPOSE 8188
 ARG COMFYUI_NVIDIA_DOCKER_VERSION="unknown"
 LABEL comfyui-nvidia-docker-build=${COMFYUI_NVIDIA_DOCKER_VERSION}
 RUN echo "COMFYUI_NVIDIA_DOCKER_VERSION: ${COMFYUI_NVIDIA_DOCKER_VERSION}" | tee -a ${BUILD_FILE}
+
+COPY --from=builder --chown=comfy:comfy /builds/*.whl /builds/
+COPY attn.bash /run/user_script.bash
 
 # We start as comfytoo and will switch to the comfy user AFTER the container is up
 # and after having altered the comfy details to match the requested UID/GID

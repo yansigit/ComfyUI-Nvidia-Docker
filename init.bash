@@ -270,52 +270,6 @@ if [ ! -d ComfyUI-Manager ]; then error_exit "ComfyUI-Manager not found"; fi
 echo "== Installing/Updating ComfyUI-Manager's requirements (from ${customnodes_dir}/ComfyUI-Manager/requirements.txt)"
 pip3 install --trusted-host pypi.org --trusted-host files.pythonhosted.org -r ${customnodes_dir}/ComfyUI-Manager/requirements.txt || error_exit "ComfyUI-Manager CLI requirements install/upgrade failed" 
 
-# Install SageAttention - conditional
-if [ "${INSTALL_SAGEATTENTION}" == "true" ]; then
-  echo ""; echo "== Installing SageAttention"
-  # Use temp directory for SageAttention installation
-  SA_TEMP_DIR="${itdir}/SageAttention_temp"
-  if [ ! -d "${SA_TEMP_DIR}" ]; then
-    mkdir -p "${SA_TEMP_DIR}" || error_exit "Failed to create temp dir for SageAttention"
-  fi
-
-  # Check if SageAttention is already installed
-  if pip3 list | grep -q "sageattention"; then
-    echo "== SageAttention already installed, skipping installation"
-  else
-    echo "== Installing SageAttention to temp directory: ${SA_TEMP_DIR}"
-    git clone https://github.com/thu-ml/SageAttention.git "${SA_TEMP_DIR}" || error_exit "SageAttention clone failed"
-    cd "${SA_TEMP_DIR}" || error_exit "Failed to cd SageAttention temp dir"
-    python setup.py install || error_exit "SageAttention install failed"
-    cd .. || error_exit "Failed to cd .."
-    rm -rf "${SA_TEMP_DIR}" # Clean up temp directory
-  fi
-  cd ${customnodes_dir}
-fi
-
-# Install SpargeAttention - conditional
-if [ "${INSTALL_SPARGEATTENTION}" == "true" ]; then
-  echo ""; echo "== Installing SpargeAttention"
-  # Use temp directory for SageAttention installation
-  SA_TEMP_DIR="${itdir}/SpargeAttn_temp"
-  if [ ! -d "${SA_TEMP_DIR}" ]; then
-    mkdir -p "${SA_TEMP_DIR}" || error_exit "Failed to create temp dir for SageAttention"
-  fi
-
-  # Check if SpargeAttention is already installed
-  if pip3 list | grep -q "spas_sage_attn"; then
-    echo "== SpargeAttention already installed, skipping installation"
-  else
-    echo "== Installing SpargeAttention to temp directory: ${SA_TEMP_DIR}"
-    git clone https://github.com/thu-ml/SpargeAttn.git "${SA_TEMP_DIR}" || error_exit "SpargeAttention clone failed"
-    cd "${SA_TEMP_DIR}" || error_exit "Failed to cd SageAttention temp dir"
-    python setup.py install || error_exit "SpargeAttention install failed"
-    cd .. || error_exit "Failed to cd .."
-    rm -rf "${SA_TEMP_DIR}" # Clean up temp directory
-  fi
-  cd ${customnodes_dir}
-fi
-
 # Lower security_level for ComfyUI-Manager to allow access from outside the container
 # This is needed to allow the WebUI to be served on 0.0.0.0 ie all interfaces and not just localhost (which would be limited to within the container)
 # Please see https://github.com/ltdrdata/ComfyUI-Manager?tab=readme-ov-file#security-policy for more details
