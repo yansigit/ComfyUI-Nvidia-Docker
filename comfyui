@@ -6,7 +6,7 @@ if [ "$1" == "build" ]; then
   if [ -z "$(docker images -q | grep -E 'attn-builder')" ]; then
     docker build -f Dockerfile/attn/ubuntu24_cuda${CUDA_VERSION}-attn-builder.Dockerfile -t attn-builder .
   fi
-  docker run --rm -v ./builds:/builds attn-builder
+  docker run --rm --gpus all -v ./builds:/builds attn-builder
 fi
 
 if [ "$1" == "run" ]; then
