@@ -1,6 +1,8 @@
 echo "== Activating virtua lenv"
 source /comfy/mnt/venv/bin/activate
 
+sudo apt install -y git sudo curl wget
+
 if [ "$PYTORCH_VERSION" = "nightly" ]; then
   echo "Installing nightly PyTorch..."
   # pip3 install --upgrade --pre torch torchaudio torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
