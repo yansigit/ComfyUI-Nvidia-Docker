@@ -1,12 +1,13 @@
 #!/bin/bash
 
 CUDA_VERSION=${2:-12.5.1}
+PYTORCH_VERSION=${3:-}
 
 if [ "$1" == "build" ]; then
   if [ -z "$(docker images -q | grep -E 'attn-builder')" ]; then
     docker build -f Dockerfile/attn/ubuntu24_cuda${CUDA_VERSION}-attn-builder.Dockerfile -t attn-builder .
   fi
-  docker run --rm --gpus all -v ./builds:/builds attn-builder
+  docker run --rm --gpus all -v ./builds:/builds -e PYTORCH_VERSION=${PYTORCH_VERSION} attn-builder
 fi
 
 if [ "$1" == "run" ]; then
@@ -26,6 +27,7 @@ if [ "$1" == "run" ]; then
     -e BASE_DIRECTORY=/basedir \
     -e SECURITY_LEVEL=normal \
     -e COMFY_CMDLINE_EXTRA="--output-directory /mnt/d/Images/output --input-directory /mnt/d/Images/input" \
+    -e PYTORCH_VERSION=${PYTORCH_VERSION} \
     -p 8188:8188 \
     --name comfyui-attn-runtime \
     comfyui-attn-runtime:latest
