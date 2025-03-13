@@ -17,6 +17,9 @@ else
   eval "$pytorch_line"
 fi
 
+sudo chown -R ${WANTED_UID}:${WANTED_GID} /comfy/mnt
+sudo chown -R ${WANTED_UID}:${WANTED_GID} /basedir
+
 # Install whl files under /builds directory
 echo "== Installing whl files under /builds directory"
 pip3 install /builds/*.whl

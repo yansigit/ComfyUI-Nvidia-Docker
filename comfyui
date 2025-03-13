@@ -1,7 +1,19 @@
 #!/bin/bash
 
+available_options=()
+for file in Dockerfile/attn/*-attn-builder.Dockerfile; do
+  if [[ $file =~ ^Dockerfile/attn/ubuntu24_cuda([0-9.]+)-attn-builder.Dockerfile$ ]]; then
+    available_options+=("--cuda-version ${BASH_REMATCH[1]}")
+  fi
+done
+
 CUDA_VERSION=${2:-12.5.1}
 PYTORCH_VERSION=${3:-}
+
+if [[ ! " ${available_options[@]} " =~ " --cuda-version ${CUDA_VERSION} " ]]; then
+  echo "Error: CUDA version ${CUDA_VERSION} is not available."
+  exit 1
+fi
 
 if [ "$1" == "build" ]; then
   if [ -z "$(docker images -q | grep -E 'attn-builder')" ]; then
@@ -14,7 +26,16 @@ if [ "$1" == "run" ]; then
   if ! docker images | grep -E '^comfyui-attn-runtime\s' 1>/dev/null; then
     docker build -f Dockerfile/ubuntu24_cuda${CUDA_VERSION}.Dockerfile -t comfyui-attn-runtime .
   fi
+
   cat ./attn.bash > /opt/comfyui/run/user_script.bash
+  chmod +x /opt/comfyui/run/user_script.bash
+
+  if ! chown -R $(id -u):$(id -g) /opt/comfyui; then
+    echo "Please run the script with sudo to change ownership of /opt/comfyui"
+  fi
+
+  # Grants all permissions to myself and group, and read permission to other users on all files and directories within /opt/comfyui
+  chmod -R ug+rwx,o+rw /opt/comfyui
   
   docker run --rm -it \
     --gpus all \
