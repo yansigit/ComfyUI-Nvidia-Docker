@@ -126,7 +126,7 @@ save_env() {
 load_env() {
   tocheck=$1
   overwrite_if_different=$2
-  ignorelist="HOME PWD USER SHLVL TERM OLDPWD SHELL _ SUDO_COMMAND HOSTNAME LOGNAME MAIL SUDO_GID SUDO_UID SUDO_USER"
+  ignorelist="HOME PWD USER SHLVL TERM OLDPWD SHELL _ SUDO_COMMAND HOSTNAME LOGNAME MAIL SUDO_GID SUDO_UID SUDO_USER CHECK_NV_CUDNN_VERSION"
   if [ -f "$tocheck" ]; then
     echo "-- Loading environment variables from $tocheck (overwrite existing: $overwrite_if_different) (ignorelist: $ignorelist)"
     while IFS='=' read -r key value; do
@@ -189,6 +189,13 @@ if [ "$WANTED_UID" != "$new_uid" ]; then error_exit "comfy MUST be running as UI
 
 # We are therefore running as comfy
 echo ""; echo "== Running as comfy"
+
+# 
+echo "-- Confirming  we have the NVIDIA driver loaded and showing details for the seen GPUs"
+if ! command -v nvidia-smi &> /dev/null; then
+  error_exit "nvidia-smi not found"
+fi
+nvidia-smi || error_exit "Failed to run nvidia-smi"
 
 # Load environment variables one by one if they do not exist from /tmp/comfytoo_env.txt
 it=/tmp/comfytoo_env.txt
