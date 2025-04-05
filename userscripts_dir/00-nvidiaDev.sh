@@ -47,10 +47,12 @@ if [ "A$BUILD_BASE" = "A" ]; then error_exit "BUILD_BASE is empty"; fi
 
 echo " ++ Build base: ${BUILD_BASE}"
 
-# Fix dpkg lock
+# Attempt to fix the dpkg lock potential issue
+# the dpkg step might fail so always exiting with "true" 
 if [ -f /var/lib/dpkg/lock ]; then
+  echo "++ Attempting to fix dpkg lock"
   sudo rm /var/lib/dpkg/lock
-  sudo dpkg --configure -a
+  sudo dpkg --configure -a || true
 fi
 
 
@@ -100,7 +102,7 @@ if [ "A$BUILD_BASE" == "Aubuntu22_cuda12.3.2" ]; then
       nvidia-cuda-toolkit \
       build-essential \
     && sudo apt-mark hold ${NV_LIBCUBLAS_DEV_PACKAGE_NAME} ${NV_LIBNCCL_DEV_PACKAGE_NAME} \
-    && sudo rm -rf /var/lib/apt/lists/*
+    && sudo apt-get clean
   fi
 fi
 
@@ -151,7 +153,7 @@ if [ "A$BUILD_BASE" == "Aubuntu22_cuda12.4.1" ]; then
       nvidia-cuda-toolkit \
       build-essential \
     && sudo apt-mark hold ${NV_LIBCUBLAS_DEV_PACKAGE_NAME} ${NV_LIBNCCL_DEV_PACKAGE_NAME} \
-    && sudo rm -rf /var/lib/apt/lists/*
+    && sudo apt-get clean
   fi
 fi
 
@@ -196,7 +198,7 @@ if [ "A${BUILD_BASE}" == "Aubuntu24_cuda12.5.1" ]; then
       nvidia-cuda-toolkit \
       build-essential \
     && sudo apt-mark hold ${NV_LIBCUBLAS_DEV_PACKAGE_NAME} \
-    && sudo rm -rf /var/lib/apt/lists/*
+    && sudo apt-get clean
   fi
 fi
 
@@ -246,7 +248,7 @@ if [ "A${BUILD_BASE}" == "Aubuntu24_cuda12.6.3" ]; then
     nvidia-cuda-toolkit \
     build-essential \
   && sudo apt-mark hold ${NV_LIBCUBLAS_DEV_PACKAGE_NAME} ${NV_LIBNCCL_DEV_PACKAGE_NAME} \
-  && sudo rm -rf /var/lib/apt/lists/*
+  && sudo apt-get clean
   fi
 fi
 
@@ -296,7 +298,7 @@ if [ "A${BUILD_BASE}" == "Aubuntu24_cuda12.8" ]; then
       nvidia-cuda-toolkit \
       build-essential \
     && sudo apt-mark hold ${NV_LIBCUBLAS_DEV_PACKAGE_NAME} ${NV_LIBNCCL_DEV_PACKAGE_NAME} \
-    && sudo rm -rf /var/lib/apt/lists/*
+    && sudo apt-get clean
   fi
 fi
 
