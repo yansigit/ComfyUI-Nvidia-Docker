@@ -59,7 +59,7 @@ mkdir -p ${BUILD_BASE}
 if [ ! -d ${BUILD_BASE} ]; then error_exit "${BUILD_BASE} not found"; fi
 cd ${BUILD_BASE}
 
-dd="/comfy/mnt/src/${BUILD_BASE}/Triton"
+dd="/comfy/mnt/src/${BUILD_BASE}/triton"
 
 if [ -d $dd ]; then
   echo "Triton source already present, deleting $dd to force reinstallation"
