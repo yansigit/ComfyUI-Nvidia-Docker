@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.5.1-runtime-ubuntu24.04
+FROM nvidia/cuda:12.5.1-devel-ubuntu24.04
 
 # Extended from https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/12.5.1/ubuntu2404/runtime/Dockerfile
 ENV NV_CUDNN_VERSION=9.3.0.75-1
@@ -12,5 +12,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   ${NV_CUDNN_PACKAGE} \
   && apt-mark hold ${NV_CUDNN_PACKAGE_NAME}-${NV_CUDA_ADD}
 
-ARG BASE_DOCKER_FROM=nvidia/cuda:12.5.1-runtime-ubuntu24.04
+ARG BASE_DOCKER_FROM=nvidia/cuda:12.5.1-devel-ubuntu24.04
 

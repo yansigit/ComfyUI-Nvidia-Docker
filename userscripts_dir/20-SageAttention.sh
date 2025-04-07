@@ -1,7 +1,5 @@
 #!/bin/bash
 
-
-## requires: 00-nvidiaDev.sh
 echo "Checking if nvcc is available"
 if ! command -v nvcc &> /dev/null; then
     echo " !! nvcc not found, canceling run"
@@ -9,7 +7,6 @@ if ! command -v nvcc &> /dev/null; then
 fi
 
 ## requires: 10-pip3Dev.sh
-
 
 min_sageattention_version="2.1"
 

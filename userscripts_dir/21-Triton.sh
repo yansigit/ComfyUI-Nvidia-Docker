@@ -1,6 +1,5 @@
 #!/bin/bash
 
-#required: 00-nvidiaDev.sh
 echo "Checking if nvcc is available"
 if ! command -v nvcc &> /dev/null; then
     echo " !! nvcc not found, canceling run"
