@@ -15,6 +15,17 @@ ok_exit() {
   exit 0
 }
 
+# Load config (must have at least ENV_IGNORELIST and ENV_OBFUSCATE_PART set)
+it=/comfyui-nvidia_config.sh
+if [ -f $it ]; then
+  source $it || error_exit "Failed to load config: $it"
+else
+  error_exit "Failed to load config: $it not found"
+fi
+# Check for ENV_IGNORELIST and ENV_OBFUSCATE_PART
+if [ -z "${ENV_IGNORELIST+x}" ]; then error_exit "ENV_IGNORELIST not set"; fi
+if [ -z "${ENV_OBFUSCATE_PART+x}" ]; then error_exit "ENV_OBFUSCATE_PART not set"; fi
+
 whoami=`whoami`
 script_dir=$(dirname $0)
 script_name=$(basename $0)
@@ -117,6 +128,54 @@ echo "== user ($whoami)"
 echo "  uid: $new_uid / WANTED_UID: $WANTED_UID"
 echo "  gid: $new_gid / WANTED_GID: $WANTED_GID"
 
+save_env() {
+  tosave=$1
+  echo "-- Saving environment variables to $tosave"
+  env | sort > "$tosave"
+}
+
+load_env() {
+  tocheck=$1
+  overwrite_if_different=$2
+  ignore_list="${ENV_IGNORELIST}"
+  obfuscate_part="${ENV_OBFUSCATE_PART}"
+  if [ -f "$tocheck" ]; then
+    echo "-- Loading environment variables from $tocheck (overwrite existing: $overwrite_if_different) (ignorelist: $ignore_list) (obfuscate: $obfuscate_part)"
+    while IFS='=' read -r key value; do
+      doit=false
+      # checking if the key is in the ignorelist
+      for i in $ignore_list; do
+        if [[ "A$key" ==  "A$i" ]]; then doit=ignore; break; fi
+      done
+      if [[ "A$doit" == "Aignore" ]]; then continue; fi
+      rvalue=$value
+      # checking if part of the key is in the obfuscate list
+      doobs=false
+      for i in $obfuscate_part; do
+        if [[ "A$key" == *"$i"* ]]; then doobs=obfuscate; break; fi
+      done
+      if [[ "A$doobs" == "Aobfuscate" ]]; then rvalue="**OBFUSCATED**"; fi
+
+      if [ -z "${!key}" ]; then
+        echo "  ++ Setting environment variable $key [$rvalue]"
+        doit=true
+      elif [ "$overwrite_if_different" = true ]; then
+        cvalue="${!key}"
+        if [[ "A${doobs}" == "Aobfuscate" ]]; then cvalue="**OBFUSCATED**"; fi
+        if [[ "A${!key}" != "A${value}" ]]; then
+          echo "  @@ Overwriting environment variable $key [$cvalue] -> [$rvalue]"
+          doit=true
+        else
+          echo "  == Environment variable $key [$rvalue] already set and value is unchanged"
+        fi
+      fi
+      if [[ "A$doit" == "Atrue" ]]; then
+        export "$key=$value"
+      fi
+    done < "$tocheck"
+  fi
+}
+
 # comfytoo is a specfiic user not existing by default on ubuntu, we can check its whomai
 if [ "A${whoami}" == "Acomfytoo" ]; then 
   echo "-- Running as comfytoo, will switch comfy to the desired UID/GID"
@@ -134,6 +193,7 @@ if [ "A${whoami}" == "Acomfytoo" ]; then
   sudo usermod -o -u ${WANTED_UID} comfy || error_exit "Failed to set UID of comfy user"
   sudo chown -R ${WANTED_UID}:${WANTED_GID} /home/comfy || error_exit "Failed to set owner of /home/comfy"
   sudo chown ${WANTED_UID}:${WANTED_GID} ${COMFYUSER_DIR} || error_exit "Failed to set owner of ${COMFYUSER_DIR}"
+  save_env /tmp/comfytoo_env.txt  
   # restart the script as comfy set with the correct UID/GID this time
   echo "-- Restarting as comfy user with UID ${WANTED_UID} GID ${WANTED_GID}"
   sudo su comfy $script_fullname ${WANTED_UID} ${WANTED_GID} ${SECURITY_LEVEL} ${BASE_DIRECTORY} ${cmd_cmdline_base} ${cmd_cmdline_extra} || error_exit "subscript failed"
@@ -146,10 +206,23 @@ fi
 if [ "$WANTED_GID" != "$new_gid" ]; then error_exit "comfy MUST be running as UID ${WANTED_UID} GID ${WANTED_GID}, current UID ${new_uid} GID ${new_gid}"; fi
 if [ "$WANTED_UID" != "$new_uid" ]; then error_exit "comfy MUST be running as UID ${WANTED_UID} GID ${WANTED_GID}, current UID ${new_uid} GID ${new_gid}"; fi
 
+########## 'comfy' specific section below
+
 # We are therefore running as comfy
 echo ""; echo "== Running as comfy"
 
-########## 'comfy' specific section below
+# 
+echo "-- Confirming  we have the NVIDIA driver loaded and showing details for the seen GPUs"
+if ! command -v nvidia-smi &> /dev/null; then
+  error_exit "nvidia-smi not found"
+fi
+nvidia-smi || error_exit "Failed to run nvidia-smi"
+
+# Load environment variables one by one if they do not exist from /tmp/comfytoo_env.txt
+it=/tmp/comfytoo_env.txt
+if [ ! -f $it ]; then error_exit "Failed to load environment variables from $it"; fi
+echo "-- Loading not already set environment variables from $it"
+load_env $it true
 
 dir_validate() { # arg1 = directory to validate / arg2 = "mount" or ""; a "mount" can not be chmod'ed
   testdir=$1
@@ -289,12 +362,12 @@ echo -n "  python bin: "; which python3
 echo -n "  pip bin: "; which pip3
 echo -n "  git bin: "; which git
 
-# CUDA 12.8 special case
+# CUDA 12.8 special case -- now 2.7.0 is available in testing
 if [[ "${BUILD_BASE}" == "${BUILD_BASE_RTX50xx}"* ]]; then
-  # https://github.com/comfyanonymous/ComfyUI/discussions/6643
+  # https://github.com/pytorch/pytorch/issues/149044
   echo ""; echo "!! This is a special case, we are going to install the requirements for RTX 50xx series GPUs"
-  echo "  -- Installation CUDA 12.8 Torch from nightly"
-  pip3 install --pre torch torchaudio torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
+  echo "  -- Installation CUDA 12.8 Torch 2.7.0 from test"
+  pip3 install torch==2.7.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/test/cu128
 fi
 
 # Install ComfyUI's requirements
@@ -395,9 +468,20 @@ if [ ! -z "$BASE_DIRECTORY" ]; then
     it=${out}/.testfile && rm -f $it || error_exit "Failed to write to $out"
   done
 
-  # Next check that all expected directories in models are present and create them otherwise
+  # Next check that all expected directories in models are present. Create them otherwise
   echo "  == Checking models directory"
-  for i in checkpoints loras vae configs clip_vision style_models diffusers vae_approx gligen upscale_models embeddings hypernetworks photomaker classifiers; do
+  present_directories=""
+  if [ -d ${BASE_DIRECTORY}/models ]; then
+    for i in ${BASE_DIRECTORY}/models/*; do
+      if [ -d $i ]; then  
+        present_directories+="${i##*/} "
+      fi
+    done
+  fi
+
+  present_directories_unique=$(echo "$present_directories" checkpoints loras vae configs clip_vision style_models diffusers vae_approx gligen upscale_models embeddings hypernetworks photomaker classifiers| tr ' ' '\n' | sort -u | tr '\n' ' ')
+
+  for i in ${present_directories_unique}; do
     it=${BASE_DIRECTORY}/models/$i
     if [ ! -d $it ]; then
       echo "    ++ Creating $it"
@@ -419,20 +503,71 @@ fi
 cd ${COMFYUI_PATH}
 echo "";echo -n "== Container directory: "; pwd
 
-# Check for a user custom script
-it=${COMFYUSER_DIR}/mnt/user_script.bash
-echo ""; echo "== Checking for user script: ${it}"
-if [ -f $it ]; then
-  if [ ! -x $it ]; then
-    echo "== Attempting to make user script executable"
-    chmod +x $it || error_exit "Failed to make user script executable"
+# Saving environment variables
+it=/tmp/comfy_env.txt
+save_env $it
+
+run_userscript() {
+  userscript=$1
+  if [ ! -f $userscript ]; then
+    echo "!! ${userscript} not found, skipping it"
+    return
   fi
-  echo "  Running user script: ${it}"
-  $it
-  if [ $? -ne 0 ]; then 
-    error_exit "User script failed or exited with an error (possibly on purpose to avoid running the default ComfyUI command)"
+
+  exec_method=$2
+  if [ "A$exec_method" == "Askip" ]; then
+    if [ ! -x $userscript ]; then
+      echo "!! ${userscript} not executable, skipping it"
+      return
+    fi
+  elif [ "A$exec_method" == "Achmod" ]; then
+    if [ ! -x $userscript ]; then
+      echo "== Attempting to make user script executable"
+      chmod +x $userscript || error_exit "Failed to make user script executable"
+    fi
+  else
+    echo "!! Invalid exec_method: ${exec_method}, skipping it"
+    return
   fi
+  userscript_name=$(basename $userscript)
+  userscript_env="/tmp/comfy_${userscript_name}_env.txt"
+  if [ -f $userscript_env ]; then
+    rm -f $userscript_env || error_exit "Failed to remove ${userscript_env}"
+  fi
+
+  echo "++ Running user script: ${userscript}"
+  $userscript || error_exit "User script ($userscript) failed or exited with an error, stopping further processing"
+
+  if [ -f $userscript_env ]; then
+    load_env $userscript_env true
+  fi
+  echo "-- User script completed: ${userscript}"
+  echo ""
+}
+
+
+# Run independent user scripts if a /userscript_dir is mounted
+it_dir=/userscripts_dir
+if [ -d $it_dir ]; then
+  echo "== Running user scripts from directory: ${it_dir}"
+  torun=$(ls $it_dir/*.sh | sort)
+  # Order the scripts by name to run them in order
+  for it in $torun; do
+    run_userscript $it "skip"
+  done
 fi
+
+
+# Check for the main custom user script (usually with command line override)
+it=${COMFYUSER_DIR}/mnt/user_script.bash
+echo ""; echo "== Checking for primary user script: ${it}"
+run_userscript $it "chmod"
+
+
+# Saving environment variables
+it=/tmp/comfy_env_final.txt
+save_env $it
+
 
 echo ""; echo "==================="
 echo "== Running ComfyUI"
