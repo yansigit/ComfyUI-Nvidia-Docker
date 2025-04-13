@@ -1,14 +1,7 @@
 #!/bin/bash
 
-echo "Checking if nvcc is available"
-if ! command -v nvcc &> /dev/null; then
-    echo " !! nvcc not found, canceling run"
-    exit 1
-fi
-
-## requires: 10-pip3Dev.sh
-
 # WiP: not building
+echo "!! Skipping SpargeAttn"
 exit 0
 
 min_spas_sage_attn_version="0.1.9"
@@ -23,6 +16,24 @@ error_exit() {
 }
 
 source /comfy/mnt/venv/bin/activate || error_exit "Failed to activate virtualenv"
+
+## requires: 00-nvidiaDev,sh
+echo "Checking if nvcc is available"
+if ! command -v nvcc &> /dev/null; then
+    error_exit " !! nvcc not found, canceling run"
+fi
+
+## requires: 10-pip3Dev.sh
+if pip3 show setuptools &>/dev/null; then
+  echo " ++ setuptools installed"
+else
+  error_exit " !! setuptools not installed, canceling run"
+fi
+if pip3 show ninja &>/dev/null; then
+  echo " ++ ninja installed"
+else
+  error_exit " !! ninja not installed, canceling run"
+fi
 
 # Adapted from https://github.com/eddiehavila/ComfyUI-Nvidia-Docker/blob/main/user_script.bash
 # and https://github.com/yansigit/ComfyUI-Nvidia-Docker/blob/main/attn-build.bash
