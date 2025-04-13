@@ -5,7 +5,7 @@ DOCKER_CMD=docker
 DOCKER_PRE="NVIDIA_VISIBLE_DEVICES=all"
 DOCKER_BUILD_ARGS=
 
-COMFYUI_NVIDIA_DOCKER_VERSION=20250320
+COMFYUI_NVIDIA_DOCKER_VERSION=20250413
 
 COMFYUI_CONTAINER_NAME=comfyui-nvidia-docker
 
@@ -133,7 +133,7 @@ docker_rmi_hub:
 # - Build the images:
 #   % make build
 # - Confirm tags are correct, esp. latest (be ready to Ctrl+C before re-running)
-#   % make docker_tag_list
+#   % make docker_tag
 # - Push the images (here too be ready to Ctrl+C before re-running)
 #   % make docker_push
 # - Update the README.md file with the new release tag + version history
