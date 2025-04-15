@@ -220,9 +220,10 @@ nvidia-smi || error_exit "Failed to run nvidia-smi"
 
 # Load environment variables one by one if they do not exist from /tmp/comfytoo_env.txt
 it=/tmp/comfytoo_env.txt
-if [ ! -f $it ]; then error_exit "Failed to load environment variables from $it"; fi
-echo "-- Loading not already set environment variables from $it"
-load_env $it true
+if [ -f $it ]; then
+  echo "-- Loading not already set environment variables from $it"
+  load_env $it true
+fi
 
 dir_validate() { # arg1 = directory to validate / arg2 = "mount" or ""; a "mount" can not be chmod'ed
   testdir=$1
