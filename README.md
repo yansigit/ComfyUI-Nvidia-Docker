@@ -135,6 +135,7 @@ It is recommended that a container monitoring tool be available to watch the log
   - [6.2. run directory](#62-run-directory)
   - [6.3. using BASE\_DIRECTORY with an outdated ComfyUI](#63-using-base_directory-with-an-outdated-comfyui)
     - [6.3.1. using a specific ComfyUI version or SHA](#631-using-a-specific-comfyui-version-or-sha)
+    - [6.3.2. Errors with ComfyUI WebUI -- re-installation method with models migration](#632-errors-with-comfyui-webui----re-installation-method-with-models-migration)
 - [7. Changelog](#7-changelog)
 
 # 1. Preamble
@@ -488,6 +489,8 @@ Content to be added within the `run` directory must be created with the `uid` an
 
 The running user's `uid` and `gid` can be obtained using `id -u` and `id -g` in a terminal.
 
+**Note:** It is not recommended to override the default starting user of the script (`comfytoo`), as it is used to set up the `comfy` user to run with the provided `WANTED_UID` and `WANTED_GID`. The script checks for the `comfytoo` user to do so, then after restarting as the `comfy` user, the script checks that the `comfy` user has the correct `uid` and `gid` and will fail if it has not been able to set it up.
+
 ### 5.5.2. COMFY_CMDLINE_BASE and COMFY_CMDLINE_EXTRA
 
 You can add extra parameters by adding ComfyUI-compatible command-line arguments to the `COMFY_CMDLINE_EXTRA` environment variable.
@@ -752,6 +755,24 @@ Adapt the `SHAvalue` to match your desired version.
 Make sure to change file ownership to the user with the `WANTED_UID` and `WANTED_GID` environment variables and to make it executable
 
 **After the process complete, you should be presented with the WebUI. Make sure to delete or rename the script to avoid it being run again.**
+
+### 6.3.2. Errors with ComfyUI WebUI -- re-installation method with models migration
+
+Sometimes a `custom_nodes` might cause the WebUI to fail to start, or error out with a message (ex: `Loading aborted due to error reloading workflow data`). In such cases, it is recommended to start from a brand new `run` and `basedir` folders, since `run` contains ComfyUI and the `venv` (virtual environment) that is required to run the WebUI, and `basedir` contains the `models` and `custom_nodes`. Because we would prefer to not have to redownload the models, the following describes a method to do so, such that you will be able to copy the content of the `models` folder from a `_old ``run` and `basedir` folders to the new ones.
+
+Process:
+- `docker stop comfyui-nvidia` and `docker rm comfyui-nvidia` the container. We will need to start a new one so that no cached data is used. This will require a fresh installation of all the packages used by ComfyUI.
+- in the folder where your `run` and `basedir` are located, move the old folders to `run_off` and `basedir_off` and recreate new empty ones: `mv run run_off; mv basedir basedir_off; mkdir run basedir`
+- `docker run ...` a new container, which will reinstall everything as new. We note that none of the custom nodes will be installed. You will need to install each custom node manually after the process is complete (or redownload them from the ComfyUI-Manager by using older workflows embedded images)
+- after successful installation and confirmation that the WebUI is working, `docker stop comfyui-nvidia` the container but do not delete it
+- in the folder where your new `run` and `basedir` are located, replace the models with the `_old` ones: `rm -rf basedir/model; mv basedir_off/models basedir/`
+- `docker start comfyui-nvidia` to restart the container, and test custom nodes installation by using the manager to enable `ComfyUI-Crystools`, follow the instructions and reload the WebUI
+
+You will still have previous content in the `run_off` and `basedir_off` folders, such as `basedir_off/output`, ...
+
+From `run_off/custom_nodes`. you will be able to see the list of custom nodes that were installed in the old container and can decided to reinstall them from the manager.
+
+Once you are confident that you have migrated content from the old container's folders, you can delete the `run_off` and `basedir_off` folders.
 
 # 7. Changelog
 
