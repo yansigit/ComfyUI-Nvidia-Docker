@@ -34,20 +34,8 @@ echo "======================================"
 echo "=================== Starting script (ID: $$)"
 echo "== Running ${script_name} in ${script_dir} as ${whoami}"
 script_fullname=$0
-cmd_wuid=$1
-cmd_wgid=$2
-cmd_seclvl=$3
-cmd_basedir=$4
-cmd_cmdline_base=$5
-cmd_cmdline_extra=$6
 echo "  - script_fullname: ${script_fullname}"
-echo "  - cmd_wuid: ${cmd_wuid}"
-echo "  - cmd_wgid: ${cmd_wgid}"
-echo "  - cmd_seclvl: ${cmd_seclvl}"
-echo "  - cmd_basedir: ${cmd_basedir}"
-echo "  - cmd_cmdline_base: ${cmd_cmdline_base}"
-echo "  - cmd_cmdline_extra: ${cmd_cmdline_extra}"
-echo "======================================"
+## 20250418: Removed previous command line arguments to support command line override
 ignore_value="VALUE_TO_IGNORE"
 
 # everyone can read our files by default
@@ -66,39 +54,61 @@ itdir=/tmp/comfy_init
 if [ ! -d $itdir ]; then mkdir $itdir; chmod 777 $itdir; fi
 if [ ! -d $itdir ]; then error_exit "Failed to create $itdir"; fi
 
+# Set ComfyUI base command line
 it=$itdir/comfy_cmdline_base
-if [ ! -z "$cmd_cmdline_base" ]; then COMFY_CMDLINE_BASE=`cat $cmd_cmdline_base`; else cmd_cmdline_base=$it;  fi
-if [ -z ${COMFY_CMDLINE_BASE+x} ]; then COMFY_CMDLINE_BASE="python3 ./main.py --listen 0.0.0.0 --disable-auto-launch"; fi
-if [ !  -z ${COMFY_CMDLINE_BASE+x} ]; then write_worldtmpfile $it "$COMFY_CMDLINE_BASE"; fi
-if [ ! -f $it ]; then error_exit "$it missing, exiting"; fi
-COMFY_CMDLINE_BASE=`cat $it`
+if [ -f $it ]; then COMFY_CMDLINE_BASE=$(cat $it); fi
+COMFY_CMDLINE_BASE=${COMFY_CMDLINE_BASE:-"python3 ./main.py --listen 0.0.0.0 --disable-auto-launch"}
+if [ ! -f $it ]; then write_worldtmpfile $it "$COMFY_CMDLINE_BASE"; fi
 echo "-- COMFY_CMDLINE_BASE: \"${COMFY_CMDLINE_BASE}\""
 
-# support previous variable
-if [ ! -z ${COMFY_CMDLINE_XTRA+x} ]; then COMFY_CMDLINE_EXTRA="${COMFY_CMDLINE_XTRA}"; fi
+# Set ComfyUI command line extra
+if [ ! -z ${COMFY_CMDLINE_XTRA+x} ]; then COMFY_CMDLINE_EXTRA="${COMFY_CMDLINE_XTRA}"; fi # support previous variable
 it=$itdir/comfy_cmdline_extra
-if [ ! -z "$cmd_cmdline_extra" ]; then COMFY_CMDLINE_EXTRA=`cat $cmd_cmdline_extra`; else cmd_cmdline_extra=$it; fi
-if [ -z ${COMFY_CMDLINE_EXTRA+x} ]; then COMFY_CMDLINE_EXTRA=""; fi
-if [ ! -z ${COMFY_CMDLINE_EXTRA+x} ]; then write_worldtmpfile $it "$COMFY_CMDLINE_EXTRA"; fi
-if [ ! -f $it ]; then error_exit "$it missing, exiting"; fi
-COMFY_CMDLINE_EXTRA=`cat $it`
+if [ -f $it ]; then COMFY_CMDLINE_EXTRA=$(cat $it); fi
+COMFY_CMDLINE_EXTRA=${COMFY_CMDLINE_EXTRA:-""}
+if [ ! -f $it ]; then write_worldtmpfile $it "$COMFY_CMDLINE_EXTRA"; fi
 echo "-- COMFY_CMDLINE_EXTRA: \"${COMFY_CMDLINE_EXTRA}\""
 
-# Get user and group id
-if [ -z "$WANTED_UID" ]; then WANTED_UID=$cmd_wuid; fi
-if [ -z "$WANTED_UID" ]; then echo "-- No WANTED_UID provided, using comfy user default of 1024"; WANTED_UID=1024; fi
-if [ -z "$WANTED_GID" ]; then WANTED_GID=$cmd_wgid; fi
-if [ -z "$WANTED_GID" ]; then echo "-- No WANTED_GID provided, using comfy user default of 1024"; WANTED_GID=1024; fi
+# Set user and group id
+it=$itdir/comfy_user_uid
+if [ -f $it ]; then WANTED_UID=$(cat $it); fi
+WANTED_UID=${WANTED_UID:-1024}
+if [ ! -f $it ]; then write_worldtmpfile $it "$WANTED_UID"; fi
+echo "-- WANTED_UID: \"${WANTED_UID}\""
 
-# Get security level
-if [ -z "$SECURITY_LEVEL" ]; then SECURITY_LEVEL=$cmd_seclvl; fi
-if [ -z "$SECURITY_LEVEL" ]; then echo "-- No SECURITY_LEVEL provided, using comfy default of normal"; SECURITY_LEVEL="normal"; fi
+it=$itdir/comfy_user_gid
+if [ -f $it ]; then WANTED_GID=$(cat $it); fi
+WANTED_GID=${WANTED_GID:-1024}
+if [ ! -f $it ]; then write_worldtmpfile $it "$WANTED_GID"; fi
+echo "-- WANTED_GID: \"${WANTED_GID}\""
 
-# Get base directory
-if [ -z "$BASE_DIRECTORY" ]; then BASE_DIRECTORY=$cmd_basedir; fi
-if [ -z "$BASE_DIRECTORY" ]; then BASE_DIRECTORY=$ignore_value; fi
+# Set security level
+it=$itdir/comfy_security_level
+if [ -f $it ]; then SECURITY_LEVEL=$(cat $it); fi
+SECURITY_LEVEL=${SECURITY_LEVEL:-"normal"}
+if [ ! -f $it ]; then write_worldtmpfile $it "$SECURITY_LEVEL"; fi
+echo "-- SECURITY_LEVEL: \"${SECURITY_LEVEL}\""
+
+# Set base directory (if not used, set to $ignore_value)
+it=$itdir/comfy_base_directory
+if [ -f $it ]; then BASE_DIRECTORY=$(cat $it); fi
+BASE_DIRECTORY=${BASE_DIRECTORY:-"$ignore_value"}
+if [ ! -f $it ]; then write_worldtmpfile $it "$BASE_DIRECTORY"; fi
+echo "-- BASE_DIRECTORY: \"${BASE_DIRECTORY}\""
+
+# Validate base directory
 if [ ! -z "$BASE_DIRECTORY" ]; then if [ $BASE_DIRECTORY != $ignore_value ] && [ ! -d "$BASE_DIRECTORY" ]; then error_exit "BASE_DIRECTORY requested but not found or not a directory ($BASE_DIRECTORY)"; fi; fi
 
+echo "== Environment variables set"
+
+# if command line arguments are provided, write them to a file, for example /bin/bash would give us a shell as comfy
+cmd_override_file=$itdir/comfy_run.sh
+if [ ! -z "$*" ]; then 
+  echo "!! Seeing command line override, placing it in $cmd_override_file: $*"
+  write_worldtmpfile $cmd_override_file "$*"
+fi
+
+echo "== Extracting base image information"
 # extract base image information
 it=/etc/image_base.txt
 if [ ! -f $it ]; then error_exit "$it missing, exiting"; fi
@@ -196,7 +206,7 @@ if [ "A${whoami}" == "Acomfytoo" ]; then
   save_env /tmp/comfytoo_env.txt  
   # restart the script as comfy set with the correct UID/GID this time
   echo "-- Restarting as comfy user with UID ${WANTED_UID} GID ${WANTED_GID}"
-  sudo su comfy $script_fullname ${WANTED_UID} ${WANTED_GID} ${SECURITY_LEVEL} ${BASE_DIRECTORY} ${cmd_cmdline_base} ${cmd_cmdline_extra} || error_exit "subscript failed"
+  sudo su comfy $script_fullname || error_exit "subscript failed"
   ok_exit "Clean exit"
 fi
 
@@ -211,18 +221,27 @@ if [ "$WANTED_UID" != "$new_uid" ]; then error_exit "comfy MUST be running as UI
 # We are therefore running as comfy
 echo ""; echo "== Running as comfy"
 
-# 
-echo "-- Confirming  we have the NVIDIA driver loaded and showing details for the seen GPUs"
+# Load environment variables one by one if they do not exist from /tmp/comfytoo_env.txt
+it=/tmp/comfytoo_env.txt
+if [ -f $it ]; then
+  echo "-- Loading not already set environment variables from $it"
+  load_env $it true
+fi
+
+# If a command line override was provided, run it
+if [ -f $cmd_override_file ]; then
+  echo "-- Running provided command line override from $cmd_override_file"
+  sudo chmod +x $cmd_override_file || error_exit "Failed to make $cmd_override_file executable"
+  $cmd_override_file
+  # This is a complete override of the script, exit right after
+  exit 0
+fi
+
+echo "-- Confirming we have the NVIDIA driver loaded and showing details for the seen GPUs"
 if ! command -v nvidia-smi &> /dev/null; then
   error_exit "nvidia-smi not found"
 fi
 nvidia-smi || error_exit "Failed to run nvidia-smi"
-
-# Load environment variables one by one if they do not exist from /tmp/comfytoo_env.txt
-it=/tmp/comfytoo_env.txt
-if [ ! -f $it ]; then error_exit "Failed to load environment variables from $it"; fi
-echo "-- Loading not already set environment variables from $it"
-load_env $it true
 
 dir_validate() { # arg1 = directory to validate / arg2 = "mount" or ""; a "mount" can not be chmod'ed
   testdir=$1
@@ -269,7 +288,7 @@ dir_validate "${it_dir}"
 it="${it_dir}/.testfile" && rm -f $it || error_exit "Failed to write to ComfyUI directory as the comfy user"
 
 ##
-echo ""; echo "== Check on BASE_DIRECTORY (if used)"
+echo ""; echo "== Check on BASE_DIRECTORY (if used / if using \"$ignore_value\" then disable it)"
 if [ "$BASE_DIRECTORY" == "$ignore_value" ]; then BASE_DIRECTORY=""; fi
 if [ ! -z "$BASE_DIRECTORY" ]; then 
   it_dir=$BASE_DIRECTORY
