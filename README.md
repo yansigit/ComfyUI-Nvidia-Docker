@@ -71,7 +71,7 @@ If this version is incompatible with your container runtime, please see the list
 | ubuntu22_cuda12.3.2-latest | | | 
 | ubuntu22_cuda12.4.1-latest | | | 
 | ubuntu24_cuda12.5.1-latest | | was `latest` up to `20250320` release |
-| ubuntu24_cuda12.6.3-latest | `latest` | current `latest`|
+| ubuntu24_cuda12.6.3-latest | `latest` | `latest` as of `20250413` release |
 | ubuntu24_cuda12.8-latest | | RTX 50xx beta |
 
 For more details on driver capabilities and how to update those, please see [Setting up NVIDIA docker & podman (Ubuntu 24.04)](https://www.gkr.one/blg-20240523-u24-nvidia-docker-podman).
@@ -126,6 +126,7 @@ It is recommended that a container monitoring tool be available to watch the log
     - [5.5.5. FORCE\_CHOWN](#555-force_chown)
   - [5.6. ComfyUI Manager \& Security levels](#56-comfyui-manager--security-levels)
   - [5.7. Shell within the Docker image](#57-shell-within-the-docker-image)
+    - [5.7.1. Alternate method](#571-alternate-method)
   - [5.8. Additional FAQ](#58-additional-faq)
     - [5.8.1. Windows: WSL2 and podman](#581-windows-wsl2-and-podman)
     - [5.8.2. RTX 5080/5090 support](#582-rtx-50805090-support)
@@ -591,6 +592,14 @@ to get the virtual environment activated (allowing you to perfom `pip3 install` 
 
 **Note:** as a reminder the `comfy` user is `sudo` capable, but `apt` commands might not persist a container restart, use the `user_script.bash` method to perform `apt` installs when the container is started.
 
+### 5.7.1. Alternate method
+
+It is possible to pass a command line override to the container by adding it to the `docker run ... mmartial/comfyui-nvidia-docker:latest` command.
+
+For example: `docker run ... -it ... mmartial/comfyui-nvidia-docker:latest /bin/bash`
+
+This will start a container and drop you into a bash shell as the `comfy` user with all mounts and permissions set up.
+
 ## 5.8. Additional FAQ
 
 See [extras/FAQ.md] for additional FAQ topics, among which:
@@ -776,6 +785,7 @@ Once you are confident that you have migrated content from the old container's f
 
 # 7. Changelog
 
+- 20250418: use ENTRYPOINT to run the init script: replaced previous command line arguments to support command line override + Added content in `README.md` to explain the use of `comfytoo` user & a section on reinstallation without loosing our existing models folder.
 - 20250413: Made CUDA 12.6.3 the new `latest` tag + Added support for `/userscripts_dir` and `/comfyui-nvidia_config.sh` 
 - 20250320: Made CUDA 12.6.3 image which will be the new `latest` as of the next release + Added checks for directory ownership + added `FORCE_CHOWN` + added libEGL/Vulkan ICD loaders and libraries (per https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/26) including extension to Windows usage section related to this addition
 - 20250227: Simplified user switching logic using the `comfytoo` user as the default entry point user that will set up the `comfy` user

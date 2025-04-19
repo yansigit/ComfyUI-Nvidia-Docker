@@ -109,4 +109,5 @@ RUN echo "COMFYUI_NVIDIA_DOCKER_VERSION: ${COMFYUI_NVIDIA_DOCKER_VERSION}" | tee
 # and after having altered the comfy details to match the requested UID/GID
 USER comfytoo
 
-CMD [ "/comfyui-nvidia_init.bash" ]
+# We use ENTRYPOINT to run the init script (from CMD)
+ENTRYPOINT [ "/comfyui-nvidia_init.bash" ]
