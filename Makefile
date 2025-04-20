@@ -5,7 +5,7 @@ DOCKER_CMD=docker
 DOCKER_PRE="NVIDIA_VISIBLE_DEVICES=all"
 DOCKER_BUILD_ARGS=
 
-COMFYUI_NVIDIA_DOCKER_VERSION=20250320
+COMFYUI_NVIDIA_DOCKER_VERSION=20250418
 
 COMFYUI_CONTAINER_NAME=comfyui-nvidia-docker
 
@@ -86,9 +86,9 @@ docker_rmi:
 # user the highest numbered entry
 #LATEST_ENTRY=$(shell echo ${DOCKER_ALL} | sed -e 's/ /\n/g' | tail -1)
 # use the previous to last entry as the candidate: 12.8 is for 50xx series GPUs, not making it the default yet)
-#LATEST_ENTRY=$(shell echo ${DOCKER_ALL} | sed -e 's/ /\n/g' | tail -2 | head -1)
+LATEST_ENTRY=$(shell echo ${DOCKER_ALL} | sed -e 's/ /\n/g' | tail -2 | head -1)
 # use the 2nd to last entry as the candidate
-LATEST_ENTRY=$(shell echo ${DOCKER_ALL} | sed -e 's/ /\n/g' | tail -3 | head -1)
+#LATEST_ENTRY=$(shell echo ${DOCKER_ALL} | sed -e 's/ /\n/g' | tail -3 | head -1)
 
 LATEST_CANDIDATE=$(shell echo ${COMFYUI_CONTAINER_NAME}:${LATEST_ENTRY})
 
@@ -133,7 +133,7 @@ docker_rmi_hub:
 # - Build the images:
 #   % make build
 # - Confirm tags are correct, esp. latest (be ready to Ctrl+C before re-running)
-#   % make docker_tag_list
+#   % make docker_tag
 # - Push the images (here too be ready to Ctrl+C before re-running)
 #   % make docker_push
 # - Update the README.md file with the new release tag + version history

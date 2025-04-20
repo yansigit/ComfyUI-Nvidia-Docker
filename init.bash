@@ -15,6 +15,17 @@ ok_exit() {
   exit 0
 }
 
+# Load config (must have at least ENV_IGNORELIST and ENV_OBFUSCATE_PART set)
+it=/comfyui-nvidia_config.sh
+if [ -f $it ]; then
+  source $it || error_exit "Failed to load config: $it"
+else
+  error_exit "Failed to load config: $it not found"
+fi
+# Check for ENV_IGNORELIST and ENV_OBFUSCATE_PART
+if [ -z "${ENV_IGNORELIST+x}" ]; then error_exit "ENV_IGNORELIST not set"; fi
+if [ -z "${ENV_OBFUSCATE_PART+x}" ]; then error_exit "ENV_OBFUSCATE_PART not set"; fi
+
 whoami=`whoami`
 script_dir=$(dirname $0)
 script_name=$(basename $0)
@@ -23,20 +34,8 @@ echo "======================================"
 echo "=================== Starting script (ID: $$)"
 echo "== Running ${script_name} in ${script_dir} as ${whoami}"
 script_fullname=$0
-cmd_wuid=$1
-cmd_wgid=$2
-cmd_seclvl=$3
-cmd_basedir=$4
-cmd_cmdline_base=$5
-cmd_cmdline_extra=$6
 echo "  - script_fullname: ${script_fullname}"
-echo "  - cmd_wuid: ${cmd_wuid}"
-echo "  - cmd_wgid: ${cmd_wgid}"
-echo "  - cmd_seclvl: ${cmd_seclvl}"
-echo "  - cmd_basedir: ${cmd_basedir}"
-echo "  - cmd_cmdline_base: ${cmd_cmdline_base}"
-echo "  - cmd_cmdline_extra: ${cmd_cmdline_extra}"
-echo "======================================"
+## 20250418: Removed previous command line arguments to support command line override
 ignore_value="VALUE_TO_IGNORE"
 
 # everyone can read our files by default
@@ -55,39 +54,61 @@ itdir=/tmp/comfy_init
 if [ ! -d $itdir ]; then mkdir $itdir; chmod 777 $itdir; fi
 if [ ! -d $itdir ]; then error_exit "Failed to create $itdir"; fi
 
+# Set ComfyUI base command line
 it=$itdir/comfy_cmdline_base
-if [ ! -z "$cmd_cmdline_base" ]; then COMFY_CMDLINE_BASE=`cat $cmd_cmdline_base`; else cmd_cmdline_base=$it;  fi
-if [ -z ${COMFY_CMDLINE_BASE+x} ]; then COMFY_CMDLINE_BASE="python3 ./main.py --listen 0.0.0.0 --disable-auto-launch"; fi
-if [ !  -z ${COMFY_CMDLINE_BASE+x} ]; then write_worldtmpfile $it "$COMFY_CMDLINE_BASE"; fi
-if [ ! -f $it ]; then error_exit "$it missing, exiting"; fi
-COMFY_CMDLINE_BASE=`cat $it`
+if [ -f $it ]; then COMFY_CMDLINE_BASE=$(cat $it); fi
+COMFY_CMDLINE_BASE=${COMFY_CMDLINE_BASE:-"python3 ./main.py --listen 0.0.0.0 --disable-auto-launch"}
+if [ ! -f $it ]; then write_worldtmpfile $it "$COMFY_CMDLINE_BASE"; fi
 echo "-- COMFY_CMDLINE_BASE: \"${COMFY_CMDLINE_BASE}\""
 
-# support previous variable
-if [ ! -z ${COMFY_CMDLINE_XTRA+x} ]; then COMFY_CMDLINE_EXTRA="${COMFY_CMDLINE_XTRA}"; fi
+# Set ComfyUI command line extra
+if [ ! -z ${COMFY_CMDLINE_XTRA+x} ]; then COMFY_CMDLINE_EXTRA="${COMFY_CMDLINE_XTRA}"; fi # support previous variable
 it=$itdir/comfy_cmdline_extra
-if [ ! -z "$cmd_cmdline_extra" ]; then COMFY_CMDLINE_EXTRA=`cat $cmd_cmdline_extra`; else cmd_cmdline_extra=$it; fi
-if [ -z ${COMFY_CMDLINE_EXTRA+x} ]; then COMFY_CMDLINE_EXTRA=""; fi
-if [ ! -z ${COMFY_CMDLINE_EXTRA+x} ]; then write_worldtmpfile $it "$COMFY_CMDLINE_EXTRA"; fi
-if [ ! -f $it ]; then error_exit "$it missing, exiting"; fi
-COMFY_CMDLINE_EXTRA=`cat $it`
+if [ -f $it ]; then COMFY_CMDLINE_EXTRA=$(cat $it); fi
+COMFY_CMDLINE_EXTRA=${COMFY_CMDLINE_EXTRA:-""}
+if [ ! -f $it ]; then write_worldtmpfile $it "$COMFY_CMDLINE_EXTRA"; fi
 echo "-- COMFY_CMDLINE_EXTRA: \"${COMFY_CMDLINE_EXTRA}\""
 
-# Get user and group id
-if [ -z "$WANTED_UID" ]; then WANTED_UID=$cmd_wuid; fi
-if [ -z "$WANTED_UID" ]; then echo "-- No WANTED_UID provided, using comfy user default of 1024"; WANTED_UID=1024; fi
-if [ -z "$WANTED_GID" ]; then WANTED_GID=$cmd_wgid; fi
-if [ -z "$WANTED_GID" ]; then echo "-- No WANTED_GID provided, using comfy user default of 1024"; WANTED_GID=1024; fi
+# Set user and group id
+it=$itdir/comfy_user_uid
+if [ -f $it ]; then WANTED_UID=$(cat $it); fi
+WANTED_UID=${WANTED_UID:-1024}
+if [ ! -f $it ]; then write_worldtmpfile $it "$WANTED_UID"; fi
+echo "-- WANTED_UID: \"${WANTED_UID}\""
 
-# Get security level
-if [ -z "$SECURITY_LEVEL" ]; then SECURITY_LEVEL=$cmd_seclvl; fi
-if [ -z "$SECURITY_LEVEL" ]; then echo "-- No SECURITY_LEVEL provided, using comfy default of normal"; SECURITY_LEVEL="normal"; fi
+it=$itdir/comfy_user_gid
+if [ -f $it ]; then WANTED_GID=$(cat $it); fi
+WANTED_GID=${WANTED_GID:-1024}
+if [ ! -f $it ]; then write_worldtmpfile $it "$WANTED_GID"; fi
+echo "-- WANTED_GID: \"${WANTED_GID}\""
 
-# Get base directory
-if [ -z "$BASE_DIRECTORY" ]; then BASE_DIRECTORY=$cmd_basedir; fi
-if [ -z "$BASE_DIRECTORY" ]; then BASE_DIRECTORY=$ignore_value; fi
+# Set security level
+it=$itdir/comfy_security_level
+if [ -f $it ]; then SECURITY_LEVEL=$(cat $it); fi
+SECURITY_LEVEL=${SECURITY_LEVEL:-"normal"}
+if [ ! -f $it ]; then write_worldtmpfile $it "$SECURITY_LEVEL"; fi
+echo "-- SECURITY_LEVEL: \"${SECURITY_LEVEL}\""
+
+# Set base directory (if not used, set to $ignore_value)
+it=$itdir/comfy_base_directory
+if [ -f $it ]; then BASE_DIRECTORY=$(cat $it); fi
+BASE_DIRECTORY=${BASE_DIRECTORY:-"$ignore_value"}
+if [ ! -f $it ]; then write_worldtmpfile $it "$BASE_DIRECTORY"; fi
+echo "-- BASE_DIRECTORY: \"${BASE_DIRECTORY}\""
+
+# Validate base directory
 if [ ! -z "$BASE_DIRECTORY" ]; then if [ $BASE_DIRECTORY != $ignore_value ] && [ ! -d "$BASE_DIRECTORY" ]; then error_exit "BASE_DIRECTORY requested but not found or not a directory ($BASE_DIRECTORY)"; fi; fi
 
+echo "== Environment variables set"
+
+# if command line arguments are provided, write them to a file, for example /bin/bash would give us a shell as comfy
+cmd_override_file=$itdir/comfy_run.sh
+if [ ! -z "$*" ]; then 
+  echo "!! Seeing command line override, placing it in $cmd_override_file: $*"
+  write_worldtmpfile $cmd_override_file "$*"
+fi
+
+echo "== Extracting base image information"
 # extract base image information
 it=/etc/image_base.txt
 if [ ! -f $it ]; then error_exit "$it missing, exiting"; fi
@@ -117,6 +138,54 @@ echo "== user ($whoami)"
 echo "  uid: $new_uid / WANTED_UID: $WANTED_UID"
 echo "  gid: $new_gid / WANTED_GID: $WANTED_GID"
 
+save_env() {
+  tosave=$1
+  echo "-- Saving environment variables to $tosave"
+  env | sort > "$tosave"
+}
+
+load_env() {
+  tocheck=$1
+  overwrite_if_different=$2
+  ignore_list="${ENV_IGNORELIST}"
+  obfuscate_part="${ENV_OBFUSCATE_PART}"
+  if [ -f "$tocheck" ]; then
+    echo "-- Loading environment variables from $tocheck (overwrite existing: $overwrite_if_different) (ignorelist: $ignore_list) (obfuscate: $obfuscate_part)"
+    while IFS='=' read -r key value; do
+      doit=false
+      # checking if the key is in the ignorelist
+      for i in $ignore_list; do
+        if [[ "A$key" ==  "A$i" ]]; then doit=ignore; break; fi
+      done
+      if [[ "A$doit" == "Aignore" ]]; then continue; fi
+      rvalue=$value
+      # checking if part of the key is in the obfuscate list
+      doobs=false
+      for i in $obfuscate_part; do
+        if [[ "A$key" == *"$i"* ]]; then doobs=obfuscate; break; fi
+      done
+      if [[ "A$doobs" == "Aobfuscate" ]]; then rvalue="**OBFUSCATED**"; fi
+
+      if [ -z "${!key}" ]; then
+        echo "  ++ Setting environment variable $key [$rvalue]"
+        doit=true
+      elif [ "$overwrite_if_different" = true ]; then
+        cvalue="${!key}"
+        if [[ "A${doobs}" == "Aobfuscate" ]]; then cvalue="**OBFUSCATED**"; fi
+        if [[ "A${!key}" != "A${value}" ]]; then
+          echo "  @@ Overwriting environment variable $key [$cvalue] -> [$rvalue]"
+          doit=true
+        else
+          echo "  == Environment variable $key [$rvalue] already set and value is unchanged"
+        fi
+      fi
+      if [[ "A$doit" == "Atrue" ]]; then
+        export "$key=$value"
+      fi
+    done < "$tocheck"
+  fi
+}
+
 # comfytoo is a specfiic user not existing by default on ubuntu, we can check its whomai
 if [ "A${whoami}" == "Acomfytoo" ]; then 
   echo "-- Running as comfytoo, will switch comfy to the desired UID/GID"
@@ -134,9 +203,10 @@ if [ "A${whoami}" == "Acomfytoo" ]; then
   sudo usermod -o -u ${WANTED_UID} comfy || error_exit "Failed to set UID of comfy user"
   sudo chown -R ${WANTED_UID}:${WANTED_GID} /home/comfy || error_exit "Failed to set owner of /home/comfy"
   sudo chown ${WANTED_UID}:${WANTED_GID} ${COMFYUSER_DIR} || error_exit "Failed to set owner of ${COMFYUSER_DIR}"
+  save_env /tmp/comfytoo_env.txt  
   # restart the script as comfy set with the correct UID/GID this time
   echo "-- Restarting as comfy user with UID ${WANTED_UID} GID ${WANTED_GID}"
-  sudo su comfy $script_fullname ${WANTED_UID} ${WANTED_GID} ${SECURITY_LEVEL} ${BASE_DIRECTORY} ${cmd_cmdline_base} ${cmd_cmdline_extra} || error_exit "subscript failed"
+  sudo su comfy $script_fullname || error_exit "subscript failed"
   ok_exit "Clean exit"
 fi
 
@@ -146,10 +216,32 @@ fi
 if [ "$WANTED_GID" != "$new_gid" ]; then error_exit "comfy MUST be running as UID ${WANTED_UID} GID ${WANTED_GID}, current UID ${new_uid} GID ${new_gid}"; fi
 if [ "$WANTED_UID" != "$new_uid" ]; then error_exit "comfy MUST be running as UID ${WANTED_UID} GID ${WANTED_GID}, current UID ${new_uid} GID ${new_gid}"; fi
 
+########## 'comfy' specific section below
+
 # We are therefore running as comfy
 echo ""; echo "== Running as comfy"
 
-########## 'comfy' specific section below
+# Load environment variables one by one if they do not exist from /tmp/comfytoo_env.txt
+it=/tmp/comfytoo_env.txt
+if [ -f $it ]; then
+  echo "-- Loading not already set environment variables from $it"
+  load_env $it true
+fi
+
+# If a command line override was provided, run it
+if [ -f $cmd_override_file ]; then
+  echo "-- Running provided command line override from $cmd_override_file"
+  sudo chmod +x $cmd_override_file || error_exit "Failed to make $cmd_override_file executable"
+  $cmd_override_file
+  # This is a complete override of the script, exit right after
+  exit 0
+fi
+
+echo "-- Confirming we have the NVIDIA driver loaded and showing details for the seen GPUs"
+if ! command -v nvidia-smi &> /dev/null; then
+  error_exit "nvidia-smi not found"
+fi
+nvidia-smi || error_exit "Failed to run nvidia-smi"
 
 dir_validate() { # arg1 = directory to validate / arg2 = "mount" or ""; a "mount" can not be chmod'ed
   testdir=$1
@@ -196,7 +288,7 @@ dir_validate "${it_dir}"
 it="${it_dir}/.testfile" && rm -f $it || error_exit "Failed to write to ComfyUI directory as the comfy user"
 
 ##
-echo ""; echo "== Check on BASE_DIRECTORY (if used)"
+echo ""; echo "== Check on BASE_DIRECTORY (if used / if using \"$ignore_value\" then disable it)"
 if [ "$BASE_DIRECTORY" == "$ignore_value" ]; then BASE_DIRECTORY=""; fi
 if [ ! -z "$BASE_DIRECTORY" ]; then 
   it_dir=$BASE_DIRECTORY
@@ -289,12 +381,12 @@ echo -n "  python bin: "; which python3
 echo -n "  pip bin: "; which pip3
 echo -n "  git bin: "; which git
 
-# CUDA 12.8 special case
+# CUDA 12.8 special case -- now 2.7.0 is available in testing
 if [[ "${BUILD_BASE}" == "${BUILD_BASE_RTX50xx}"* ]]; then
-  # https://github.com/comfyanonymous/ComfyUI/discussions/6643
+  # https://github.com/pytorch/pytorch/issues/149044
   echo ""; echo "!! This is a special case, we are going to install the requirements for RTX 50xx series GPUs"
-  echo "  -- Installation CUDA 12.8 Torch from nightly"
-  pip3 install --pre torch torchaudio torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
+  echo "  -- Installation CUDA 12.8 Torch 2.7.0 from test"
+  pip3 install torch==2.7.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/test/cu128
 fi
 
 # Install ComfyUI's requirements
@@ -395,9 +487,20 @@ if [ ! -z "$BASE_DIRECTORY" ]; then
     it=${out}/.testfile && rm -f $it || error_exit "Failed to write to $out"
   done
 
-  # Next check that all expected directories in models are present and create them otherwise
+  # Next check that all expected directories in models are present. Create them otherwise
   echo "  == Checking models directory"
-  for i in checkpoints loras vae configs clip_vision style_models diffusers vae_approx gligen upscale_models embeddings hypernetworks photomaker classifiers; do
+  present_directories=""
+  if [ -d ${BASE_DIRECTORY}/models ]; then
+    for i in ${BASE_DIRECTORY}/models/*; do
+      if [ -d $i ]; then  
+        present_directories+="${i##*/} "
+      fi
+    done
+  fi
+
+  present_directories_unique=$(echo "$present_directories" checkpoints loras vae configs clip_vision style_models diffusers vae_approx gligen upscale_models embeddings hypernetworks photomaker classifiers| tr ' ' '\n' | sort -u | tr '\n' ' ')
+
+  for i in ${present_directories_unique}; do
     it=${BASE_DIRECTORY}/models/$i
     if [ ! -d $it ]; then
       echo "    ++ Creating $it"
@@ -419,20 +522,71 @@ fi
 cd ${COMFYUI_PATH}
 echo "";echo -n "== Container directory: "; pwd
 
-# Check for a user custom script
-it=${COMFYUSER_DIR}/mnt/user_script.bash
-echo ""; echo "== Checking for user script: ${it}"
-if [ -f $it ]; then
-  if [ ! -x $it ]; then
-    echo "== Attempting to make user script executable"
-    chmod +x $it || error_exit "Failed to make user script executable"
+# Saving environment variables
+it=/tmp/comfy_env.txt
+save_env $it
+
+run_userscript() {
+  userscript=$1
+  if [ ! -f $userscript ]; then
+    echo "!! ${userscript} not found, skipping it"
+    return
   fi
-  echo "  Running user script: ${it}"
-  $it
-  if [ $? -ne 0 ]; then 
-    error_exit "User script failed or exited with an error (possibly on purpose to avoid running the default ComfyUI command)"
+
+  exec_method=$2
+  if [ "A$exec_method" == "Askip" ]; then
+    if [ ! -x $userscript ]; then
+      echo "!! ${userscript} not executable, skipping it"
+      return
+    fi
+  elif [ "A$exec_method" == "Achmod" ]; then
+    if [ ! -x $userscript ]; then
+      echo "== Attempting to make user script executable"
+      chmod +x $userscript || error_exit "Failed to make user script executable"
+    fi
+  else
+    echo "!! Invalid exec_method: ${exec_method}, skipping it"
+    return
   fi
+  userscript_name=$(basename $userscript)
+  userscript_env="/tmp/comfy_${userscript_name}_env.txt"
+  if [ -f $userscript_env ]; then
+    rm -f $userscript_env || error_exit "Failed to remove ${userscript_env}"
+  fi
+
+  echo "++ Running user script: ${userscript}"
+  $userscript || error_exit "User script ($userscript) failed or exited with an error, stopping further processing"
+
+  if [ -f $userscript_env ]; then
+    load_env $userscript_env true
+  fi
+  echo "-- User script completed: ${userscript}"
+  echo ""
+}
+
+
+# Run independent user scripts if a /userscript_dir is mounted
+it_dir=/userscripts_dir
+if [ -d $it_dir ]; then
+  echo "== Running user scripts from directory: ${it_dir}"
+  torun=$(ls $it_dir/*.sh | sort)
+  # Order the scripts by name to run them in order
+  for it in $torun; do
+    run_userscript $it "skip"
+  done
 fi
+
+
+# Check for the main custom user script (usually with command line override)
+it=${COMFYUSER_DIR}/mnt/user_script.bash
+echo ""; echo "== Checking for primary user script: ${it}"
+run_userscript $it "chmod"
+
+
+# Saving environment variables
+it=/tmp/comfy_env_final.txt
+save_env $it
+
 
 echo ""; echo "==================="
 echo "== Running ComfyUI"

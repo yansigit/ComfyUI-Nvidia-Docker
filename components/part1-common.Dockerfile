@@ -55,8 +55,9 @@ ARG BUILD_BASE="unknown"
 LABEL comfyui-nvidia-docker-build-from=${BUILD_BASE}
 RUN it="/etc/build_base.txt"; echo ${BUILD_BASE} > $it && chmod 555 $it
 
-# Place the init script in / so it can be found by the entrypoint
+# Place the init script and its config in / so it can be found by the entrypoint
 COPY --chmod=555 init.bash /comfyui-nvidia_init.bash
+COPY --chmod=555 config.sh /comfyui-nvidia_config.sh
 
 ##### ComfyUI preparation
 # Every sudo group user does not need a password
@@ -92,4 +93,5 @@ RUN echo "COMFYUI_NVIDIA_DOCKER_VERSION: ${COMFYUI_NVIDIA_DOCKER_VERSION}" | tee
 # and after having altered the comfy details to match the requested UID/GID
 USER comfytoo
 
-CMD [ "/comfyui-nvidia_init.bash" ]
+# We use ENTRYPOINT to run the init script (from CMD)
+ENTRYPOINT [ "/comfyui-nvidia_init.bash" ]
