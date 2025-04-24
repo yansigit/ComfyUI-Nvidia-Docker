@@ -127,7 +127,6 @@ if [ ! -f $it ]; then error_exit "$it missing, exiting"; fi
 BUILD_BASE=`cat $it`
 BUILD_BASE_FILE=$it
 BUILD_BASE_SPECIAL="ubuntu22_cuda12.3.2" # this is a special value: when this feature was introduced, will be used to mark exisitng venv if the marker is not present
-BUILD_BASE_RTX50xx="ubuntu24_cuda12.8"
 echo "-- BUILD_BASE: \"${BUILD_BASE}\""
 if test -z ${BUILD_BASE}; then error_exit "Empty BUILD_BASE variable"; fi
 
@@ -381,13 +380,13 @@ echo -n "  python bin: "; which python3
 echo -n "  pip bin: "; which pip3
 echo -n "  git bin: "; which git
 
-# CUDA 12.8 special case -- now 2.7.0 is available in testing
-if [[ "${BUILD_BASE}" == "${BUILD_BASE_RTX50xx}"* ]]; then
-  # https://github.com/pytorch/pytorch/issues/149044
-  echo ""; echo "!! This is a special case, we are going to install the requirements for RTX 50xx series GPUs"
-  echo "  -- Installation CUDA 12.8 Torch 2.7.0 from test"
-  pip3 install torch==2.7.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/test/cu128
-fi
+# 20250424: No more CUDA 12.8 special case needed: PyTorch 2.7.0 is available
+#if [[ "${BUILD_BASE}" == "${BUILD_BASE_RTX50xx}"* ]]; then
+#  # https://github.com/pytorch/pytorch/issues/149044
+#  echo ""; echo "!! This is a special case, we are going to install the requirements for RTX 50xx series GPUs"
+#  echo "  -- Installation CUDA 12.8 Torch 2.7.0 from test"
+#  pip3 install torch==2.7.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/test/cu128
+#fi
 
 # Install ComfyUI's requirements
 cd ComfyUI
