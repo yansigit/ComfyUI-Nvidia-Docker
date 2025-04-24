@@ -61,6 +61,8 @@ The base container size is usually over 8GB, as new releases are now based on Nv
 
 Multiple images are available. Each image's name contains a tag reflecting its core components. For example, `ubuntu24_cuda12.5.1` is based on Ubuntu 24.04 with CUDA 12.5.1. Depending on the version of the Nvidia drivers installed, the Docker container runtime will only support a certain version of CUDA. For example, Driver 550 supports up to CUDA 12.4 and will not be able to run the CUDA 12.4.1 or 12.5.1 versions. The recently released 570 driver supports up to CUDA 12.8 and RTX 50xx GPUs.
 
+For more details on CUDA/GPU support, see https://en.wikipedia.org/wiki/CUDA#GPUs_supported
+
 Use the `nvidia-smi` command on your system to obtain the `CUDA Version:` entry. It will show you the maximum CUDA version supported by your driver. If the printout shows `CUDA Version: 12.6`, your driver will support up to the `cuda12.5.1` version of the container (below the maximum CUDA version supported by the driver) but not `cuda12.8`. With this information, check for a usable `tag`  in the table below.
 
 The `latest` tag will point to a most up-to-date build (i.e., the most recent OS+CUDA). 
@@ -72,7 +74,7 @@ If this version is incompatible with your container runtime, please see the list
 | ubuntu22_cuda12.4.1-latest | | | 
 | ubuntu24_cuda12.5.1-latest | | was `latest` up to `20250320` release |
 | ubuntu24_cuda12.6.3-latest | `latest` | `latest` as of `20250413` release |
-| ubuntu24_cuda12.8-latest | | RTX 50xx beta |
+| ubuntu24_cuda12.8-latest | | needed for Blackwell (inc RTX 50xx) hardware |
 
 For more details on driver capabilities and how to update those, please see [Setting up NVIDIA docker & podman (Ubuntu 24.04)](https://www.gkr.one/blg-20240523-u24-nvidia-docker-podman).
 
@@ -681,7 +683,7 @@ After using ComfyUI, `Ctrl+C` in the `podman` terminal will terminate the WebUI.
 
 ### 5.8.2. RTX 5080/5090 support
 
-To use the RTX 5080/5090 GPUs, you will need to make sure to install NVIDIA driver 570 or above. This driver brings support for the RTX 50xx series of GPUs and CUDA 12.8. PyTorch is also installed from the `nightly` version (until the official release of 2.7.0 with CUDA 12.8 support).
+To use the RTX 5080/5090 GPUs, you will need to make sure to install NVIDIA driver 570 or above. This driver brings support for the RTX 50xx series of GPUs and CUDA 12.8. On 20250424, PyTorch 2.7.0 was released with support for CUDA 12.8.
 
 ### 5.8.3. Specifying alternate folder location (ex: --output_directory) with BASE_DIRECTORY
 
@@ -785,6 +787,7 @@ Once you are confident that you have migrated content from the old container's f
 
 # 7. Changelog
 
+- 20250424: No RTX50xx special case needed: PyTorch 2.7.0 is available for CUDA 12.8, only re-releasing this image
 - 20250418: use ENTRYPOINT to run the init script: replaced previous command line arguments to support command line override + Added content in `README.md` to explain the use of `comfytoo` user & a section on reinstallation without losing our existing models folder.
 - 20250413: Made CUDA 12.6.3 the new `latest` tag + Added support for `/userscripts_dir` and `/comfyui-nvidia_config.sh` 
 - 20250320: Made CUDA 12.6.3 image which will be the new `latest` as of the next release + Added checks for directory ownership + added `FORCE_CHOWN` + added libEGL/Vulkan ICD loaders and libraries (per https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/26) including extension to Windows usage section related to this addition
