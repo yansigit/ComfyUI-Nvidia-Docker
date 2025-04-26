@@ -39,6 +39,9 @@ if pip3 show torch &>/dev/null; then
         echo "Torch version $torch_version is below minimum version $min_torch_version, need to install"
         must_install=$((must_install+1))
     fi
+else
+    echo "PyTorch is not installed, need to install"
+    must_install=$((must_install+1))
 fi
 
 if [ $must_install -eq 0 ]; then
