@@ -5,7 +5,7 @@ DOCKER_CMD=docker
 DOCKER_PRE="NVIDIA_VISIBLE_DEVICES=all"
 DOCKER_BUILD_ARGS=
 
-COMFYUI_NVIDIA_DOCKER_VERSION=20250424
+COMFYUI_NVIDIA_DOCKER_VERSION=20250426
 
 COMFYUI_CONTAINER_NAME=comfyui-nvidia-docker
 
@@ -14,8 +14,6 @@ DOCKERFILE_DIR=Dockerfile
 
 # Get the list of all the base- files in COMPONENTS_DIR
 DOCKER_ALL=$(shell ls -1 ${COMPONENTS_DIR}/base-* | perl -pe 's%^.+/base-%%' | perl -pe 's%\.Dockerfile%%' | sort)
-# Remove CUDA 12.8 entries for the time being
-#DOCKER_ALL=$(shell ls -1 ${COMPONENTS_DIR}/base-* | perl -pe 's%^.+/base-%%' | perl -pe 's%\.Dockerfile%%' | sort | grep -v 12.8)
 
 all:
 	@if [ `echo ${DOCKER_ALL} | wc -w` -eq 0 ]; then echo "No images candidates to build"; exit 1; fi
