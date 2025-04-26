@@ -380,13 +380,51 @@ echo -n "  python bin: "; which python3
 echo -n "  pip bin: "; which pip3
 echo -n "  git bin: "; which git
 
-# 20250424: No more CUDA 12.8 special case needed: PyTorch 2.7.0 is available
-#if [[ "${BUILD_BASE}" == "${BUILD_BASE_RTX50xx}"* ]]; then
-#  # https://github.com/pytorch/pytorch/issues/149044
-#  echo ""; echo "!! This is a special case, we are going to install the requirements for RTX 50xx series GPUs"
-#  echo "  -- Installation CUDA 12.8 Torch 2.7.0 from test"
-#  pip3 install torch==2.7.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/test/cu128
-#fi
+
+run_userscript() {
+  userscript=$1
+  if [ ! -f $userscript ]; then
+    echo "!! ${userscript} not found, skipping it"
+    return
+  fi
+
+  exec_method=$2
+  if [ "A$exec_method" == "Askip" ]; then
+    if [ ! -x $userscript ]; then
+      echo "!! ${userscript} not executable, skipping it"
+      return
+    fi
+  elif [ "A$exec_method" == "Achmod" ]; then
+    if [ ! -x $userscript ]; then
+      echo "== Attempting to make user script executable"
+      chmod +x $userscript || error_exit "Failed to make user script executable"
+    fi
+  else
+    echo "!! Invalid exec_method: ${exec_method}, skipping it"
+    return
+  fi
+  userscript_name=$(basename $userscript)
+  userscript_env="/tmp/comfy_${userscript_name}_env.txt"
+  if [ -f $userscript_env ]; then
+    rm -f $userscript_env || error_exit "Failed to remove ${userscript_env}"
+  fi
+
+  echo "++ Running user script: ${userscript}"
+  $userscript || error_exit "User script ($userscript) failed or exited with an error, stopping further processing"
+
+  if [ -f $userscript_env ]; then
+    load_env $userscript_env true
+  fi
+  echo "-- User script completed: ${userscript}"
+  echo ""
+}
+
+
+# Check for the post-venv script
+it=${COMFYUSER_DIR}/mnt/postvenv_script.bash
+echo ""; echo "== Checking for post-venv script: ${it}"
+run_userscript $it "chmod"
+
 
 # Install ComfyUI's requirements
 cd ComfyUI
@@ -524,44 +562,6 @@ echo "";echo -n "== Container directory: "; pwd
 # Saving environment variables
 it=/tmp/comfy_env.txt
 save_env $it
-
-run_userscript() {
-  userscript=$1
-  if [ ! -f $userscript ]; then
-    echo "!! ${userscript} not found, skipping it"
-    return
-  fi
-
-  exec_method=$2
-  if [ "A$exec_method" == "Askip" ]; then
-    if [ ! -x $userscript ]; then
-      echo "!! ${userscript} not executable, skipping it"
-      return
-    fi
-  elif [ "A$exec_method" == "Achmod" ]; then
-    if [ ! -x $userscript ]; then
-      echo "== Attempting to make user script executable"
-      chmod +x $userscript || error_exit "Failed to make user script executable"
-    fi
-  else
-    echo "!! Invalid exec_method: ${exec_method}, skipping it"
-    return
-  fi
-  userscript_name=$(basename $userscript)
-  userscript_env="/tmp/comfy_${userscript_name}_env.txt"
-  if [ -f $userscript_env ]; then
-    rm -f $userscript_env || error_exit "Failed to remove ${userscript_env}"
-  fi
-
-  echo "++ Running user script: ${userscript}"
-  $userscript || error_exit "User script ($userscript) failed or exited with an error, stopping further processing"
-
-  if [ -f $userscript_env ]; then
-    load_env $userscript_env true
-  fi
-  echo "-- User script completed: ${userscript}"
-  echo ""
-}
 
 
 # Run independent user scripts if a /userscript_dir is mounted
