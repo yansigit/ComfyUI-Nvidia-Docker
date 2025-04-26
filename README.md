@@ -24,7 +24,7 @@
 When using RTX 50xx GPUs: 
 - you must use NVIDIA driver 570 (or above).
 - use the `ubuntu24_cuda12.8` container tag (or above).
-- for a compatible `PyTroch` installation, run `cp extras/PyToch2.7.0-CUDA12.8.sh <YOURRUNFOLDER>/postvenv_script.bash` as described in the "Blackwell support" section. 
+- for a compatible `PyTorch` installation, run `cp extras/PyTorch2.7.0-CUDA12.8.sh <YOURRUNFOLDER>/postvenv_script.bash` as described in the "Blackwell support" section. 
 
 <h2>About "latest" tag</h2>
 
@@ -704,13 +704,13 @@ To use the Blackwell GPU (RTX 5080/5090), you will need to make sure to install 
 
 The `postvenv_script.bash` feature was added because with the release of PyTorch 2.7.0, for the time being, when installing on a CUDA 12.8 base image, the PyTorch wheel used appears to be for CUDA 12.6, which is incompatible. 
 
-A workaround file [extras/PyToch2.7.0-CUDA12.8.sh](./extras/PyToch2.7.0-CUDA12.8.sh) is provided that will install PyTorch 2.7.0 with CUDA 12.8 support. 
+A workaround file [extras/PyTorch2.7.0-CUDA12.8.sh](./extras/PyTorch2.7.0-CUDA12.8.sh) is provided that will install PyTorch 2.7.0 with CUDA 12.8 support. 
 
-To ensure the proper version of PyTorch is installed, you will need to copy the [extras/PyToch2.7.0-CUDA12.8.sh](./extras/PyToch2.7.0-CUDA12.8.sh) file into the `run` folder as `postvenv_script.bash`.
+To ensure the proper version of PyTorch is installed, you will need to copy the [extras/PyTorch2.7.0-CUDA12.8.sh](./extras/PyTorch2.7.0-CUDA12.8.sh) file into the `run` folder as `postvenv_script.bash`.
 
 ```bash
 # Adapt <YOURRUNFOLDER> to your run folder
-cp extras/PyToch2.7.0-CUDA12.8.sh <YOURRUNFOLDER>/postvenv_script.bash
+cp extras/PyTorch2.7.0-CUDA12.8.sh <YOURRUNFOLDER>/postvenv_script.bash
 ```
 
 Additional details can be found in [this issue](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/43).
@@ -817,7 +817,7 @@ Once you are confident that you have migrated content from the old container's f
 
 # 7. Changelog
 
-- 20250426: Added support for `postvenv_script.bash` script (run after the virtual environment is set but before ComfyUI is installed/updated -- with a direct application to Blackwell GPUs to install PyTorch 2.7.0 with CUDA 12.8 support). See [extras/PyToch2.7.0-CUDA12.8.sh](./extras/PyToch2.7.0-CUDA12.8.sh) for details.
+- 20250426: Added support for `postvenv_script.bash` script (run after the virtual environment is set but before ComfyUI is installed/updated -- with a direct application to Blackwell GPUs to install PyTorch 2.7.0 with CUDA 12.8 support). See [extras/PyTorch2.7.0-CUDA12.8.sh](./extras/PyTorch2.7.0-CUDA12.8.sh) for details.
 - 20250424: No RTX50xx special case needed: PyTorch 2.7.0 is available for CUDA 12.8, only re-releasing this image
 - 20250418: use ENTRYPOINT to run the init script: replaced previous command line arguments to support command line override + Added content in `README.md` to explain the use of `comfytoo` user & a section on reinstallation without losing our existing models folder.
 - 20250413: Made CUDA 12.6.3 the new `latest` tag + Added support for `/userscripts_dir` and `/comfyui-nvidia_config.sh` 
