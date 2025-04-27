@@ -700,20 +700,62 @@ After using ComfyUI, `Ctrl+C` in the `podman` terminal will terminate the WebUI.
 
 ### 5.9.2. Blackwell support
 
-To use the Blackwell GPU (RTX 5080/5090), you will need to make sure to install NVIDIA driver 570 or above. This driver brings support for the RTX 50xx series of GPUs and CUDA 12.8. On 20250424, PyTorch 2.7.0 was released with support for CUDA 12.8.
+To use the Blackwell GPU (RTX 5080/5090), you will need to make sure to install NVIDIA driver 570 or above. This driver brings support for the RTX 50xx series of GPUs and CUDA 12.8. 
+
+On 20250424, PyTorch 2.7.0 was released with support for CUDA 12.8.
 
 The `postvenv_script.bash` feature was added because with the release of PyTorch 2.7.0, for the time being, when installing on a CUDA 12.8 base image, the PyTorch wheel used appears to be for CUDA 12.6, which is incompatible. 
 
-A workaround file [extras/PyTorch2.7.0-CUDA12.8.sh](./extras/PyTorch2.7.0-CUDA12.8.sh) is provided that will install PyTorch 2.7.0 with CUDA 12.8 support. 
+Until `cu128` is the default, a workaround script [extras/PyTorch2.7.0-CUDA12.8.sh](./extras/PyTorch2.7.0-CUDA12.8.sh) is provided that will install PyTorch 2.7.0 with CUDA 12.8 support. 
 
-To ensure the proper version of PyTorch is installed, you will need to copy the [extras/PyTorch2.7.0-CUDA12.8.sh](./extras/PyTorch2.7.0-CUDA12.8.sh) file into the `run` folder as `postvenv_script.bash`.
+To use it, copy the [extras/PyTorch2.7.0-CUDA12.8.sh](./extras/PyTorch2.7.0-CUDA12.8.sh) file into the `run` folder as `postvenv_script.bash` before starting the container.
 
 ```bash
-# Adapt <YOURRUNFOLDER> to your run folder
-cp extras/PyTorch2.7.0-CUDA12.8.sh <YOURRUNFOLDER>/postvenv_script.bash
+## Adapt <YOUR_EXEC_FOLDER> to the folder that contains your run folder
+cd <YOUR_EXEC_FOLDER>
+
+## Only use one of the wget or curl depending on what is installed on your system
+
+# wget
+wget https://raw.githubusercontent.com/mmartial/ComfyUI-Nvidia-Docker/refs/heads/main/extras/PyTorch2.7.0-CUDA12.8.sh -O ./run/postvenv_script.bash
+
+# curl
+curl -s -L https://raw.githubusercontent.com/mmartial/ComfyUI-Nvidia-Docker/refs/heads/main/extras/PyTorch2.7.0-CUDA12.8.sh -o ./run/postvenv_script.bash
 ```
 
-Additional details can be found in [this issue](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/43).
+You can then run the `ubuntu24_cuda12.8` container. 
+For example:
+
+```bash
+docker run --rm -it --runtime nvidia --gpus all -v `pwd`/run:/comfy/mnt -v `pwd`/basedir:/basedir  -e WANTED_UID=`id -u` -e WANTED_GID=`id -g` -e BASE_DIRECTORY=/basedir -e SECURITY_LEVEL=normal -p 8188:8188 mmartial/comfyui-nvidia-docker:ubuntu24_cuda12.8-latest
+```
+
+During initial run, you will see something similar to:
+
+```
+[...]
+== Checking for post-venv script: /comfy/mnt/postvenv_script.bash
+== Attempting to make user script executable
+++ Running user script: /comfy/mnt/postvenv_script.bash
+PyTorch is not installed, need to install
+Looking in indexes: https://download.pytorch.org/whl/cu128
+Collecting torch==2.7.0
+[...]
+```
+
+This step is ran after the virtual environment is created and before the ComfyUI installation.
+It will install PyTorch 2.7.0 (`torch`, `torchvision`, `torchaudio`) with CUDA 12.8 support.
+
+In the log, you can confirm ComfyUI uses the proper version of PyTorch:
+
+```
+===================
+== Running ComfyUI
+[...]
+pytorch version: 2.7.0+cu128
+```
+
+Additional details on this can be found in [this issue](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/43).
 
 ### 5.9.3. Specifying alternate folder location (ex: --output_directory) with BASE_DIRECTORY
 
