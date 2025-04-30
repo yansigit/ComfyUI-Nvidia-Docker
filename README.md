@@ -141,6 +141,7 @@ It is recommended that a container monitoring tool be available to watch the log
   - [5.9. Additional FAQ](#59-additional-faq)
     - [5.9.1. Windows: WSL2 and podman](#591-windows-wsl2-and-podman)
     - [5.9.2. Blackwell support](#592-blackwell-support)
+      - [5.9.2.1. Blackwell support on Unraid](#5921-blackwell-support-on-unraid)
     - [5.9.3. Specifying alternate folder location (ex: --output\_directory) with BASE\_DIRECTORY](#593-specifying-alternate-folder-location-ex---output_directory-with-base_directory)
 - [6. Troubleshooting](#6-troubleshooting)
   - [6.1. Virtual environment](#61-virtual-environment)
@@ -756,6 +757,18 @@ pytorch version: 2.7.0+cu128
 ```
 
 Additional details on this can be found in [this issue](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/43).
+
+#### 5.9.2.1. Blackwell support on Unraid
+
+When using the `ubuntu24_cuda12.8-latest` image on Unraid, obtain a terminal from your Unraid WebUI and run the following commands:
+
+```bash
+cd /mnt/user/appdata/comfyui-nvidia/mnt
+wget https://raw.githubusercontent.com/mmartial/ComfyUI-Nvidia-Docker/refs/heads/main/extras/PyTorch2.7.0-CUDA12.8.sh -O ./postvenv_script.bash
+chown 99:100 ./postvenv_script.bash
+```
+
+Restart the container and it should install PyTorch 2.7.0 with CUDA 12.8 support.
 
 ### 5.9.3. Specifying alternate folder location (ex: --output_directory) with BASE_DIRECTORY
 
