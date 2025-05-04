@@ -49,6 +49,6 @@ if [ $must_install -eq 0 ]; then
   exit 0
 fi
 
-pip3 install -U --trusted-host pypi.org --trusted-host files.pythonhosted.org torch==${min_torch_version} torchvision torchaudio --index-url https://download.pytorch.org/whl/${cuda_wheel}
+pip3 install -U --trusted-host pypi.org --trusted-host files.pythonhosted.org "torch>=${min_torch_version}" torchvision torchaudio --index-url https://download.pytorch.org/whl/${cuda_wheel}
 
 exit 0
