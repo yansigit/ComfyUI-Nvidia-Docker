@@ -135,15 +135,15 @@ It is recommended that a container monitoring tool be available to watch the log
     - [5.6.3. BASE\_DIRECTORY](#563-base_directory)
     - [5.6.4. SECURITY\_LEVEL](#564-security_level)
     - [5.6.5. FORCE\_CHOWN](#565-force_chown)
-  - [5.6.6. run/pip\_cache and run/tmp](#566-runpip_cache-and-runtmp)
-  - [5.7. ComfyUI Manager \& Security levels](#57-comfyui-manager--security-levels)
-  - [5.8. Shell within the Docker image](#58-shell-within-the-docker-image)
-    - [5.8.1. Alternate method](#581-alternate-method)
-  - [5.9. Additional FAQ](#59-additional-faq)
-    - [5.9.1. Windows: WSL2 and podman](#591-windows-wsl2-and-podman)
-    - [5.9.2. Blackwell support](#592-blackwell-support)
-      - [5.9.2.1. Blackwell support on Unraid](#5921-blackwell-support-on-unraid)
-    - [5.9.3. Specifying alternate folder location (ex: --output\_directory) with BASE\_DIRECTORY](#593-specifying-alternate-folder-location-ex---output_directory-with-base_directory)
+  - [5.7. run/pip\_cache and run/tmp](#57-runpip_cache-and-runtmp)
+  - [5.8. ComfyUI Manager \& Security levels](#58-comfyui-manager--security-levels)
+  - [5.9. Shell within the Docker image](#59-shell-within-the-docker-image)
+    - [5.9.1. Alternate method](#591-alternate-method)
+  - [5.10. Additional FAQ](#510-additional-faq)
+    - [5.10.1. Windows: WSL2 and podman](#5101-windows-wsl2-and-podman)
+    - [5.10.2. Blackwell support](#5102-blackwell-support)
+      - [5.10.2.1. Blackwell support on Unraid](#51021-blackwell-support-on-unraid)
+    - [5.10.3. Specifying alternate folder location (ex: --output\_directory) with BASE\_DIRECTORY](#5103-specifying-alternate-folder-location-ex---output_directory-with-base_directory)
 - [6. Troubleshooting](#6-troubleshooting)
   - [6.1. Virtual environment](#61-virtual-environment)
   - [6.2. run directory](#62-run-directory)
@@ -577,7 +577,7 @@ This option was added to support users who mount the `run` and `basedir` folders
 
 When set, it will "force chown" every sub-folder in the `run` and `basedir` folders when it first attempt to access them before verifying they are owned by the proper user.
 
-## 5.6.6. run/pip_cache and run/tmp
+## 5.7. run/pip_cache and run/tmp
 
 If the `run/pip_cache` and `run/tmp` folders are present, they will be used as the cache folder for pip and the temporary directory for the comfy user. They should be created in the `run` folder before running the container starts with the user with the `WANTED_UID` and `WANTED_GID`.
 
@@ -591,7 +591,7 @@ This can be useful to avoid using the container's `writeable` layers, which migh
 
 Those are temporary folders, and can be deleted when the container is stopped.
 
-## 5.7. ComfyUI Manager & Security levels
+## 5.8. ComfyUI Manager & Security levels
 
 [ComfyUI Manager](https://github.com/ltdrdata/ComfyUI-Manager/) is installed and available in the container.
 
@@ -606,7 +606,7 @@ Note that if this is the first time starting the container, the file will not ye
 To use `cm-cli`, from the virtualenv, use: `python3 /comfy/mnt/custom_nodes/ComfyUI-Manager/cm-cli.py`.
 For example: `python3 /comfy/mnt/custom_nodes/ComfyUI-Manager/cm-cli.py show installed` (`COMFYUI_PATH=/ComfyUI` should be set)
 
-## 5.8. Shell within the Docker image
+## 5.9. Shell within the Docker image
 
 When starting a `docker exec -it comfyui-nvidia /bin/bash` (or getting a `bash` terminal from `docker compose`), you will be logged in as the `comfytoo` user.
 
@@ -626,7 +626,7 @@ to get the virtual environment activated (allowing you to perfom `pip3 install` 
 
 **Note:** as a reminder the `comfy` user is `sudo` capable, but `apt` commands might not persist a container restart, use the `user_script.bash` method to perform `apt` installs when the container is started.
 
-### 5.8.1. Alternate method
+### 5.9.1. Alternate method
 
 It is possible to pass a command line override to the container by adding it to the `docker run ... mmartial/comfyui-nvidia-docker:latest` command.
 
@@ -634,14 +634,14 @@ For example: `docker run ... -it ... mmartial/comfyui-nvidia-docker:latest /bin/
 
 This will start a container and drop you into a bash shell as the `comfy` user with all mounts and permissions set up.
 
-## 5.9. Additional FAQ
+## 5.10. Additional FAQ
 
 See [extras/FAQ.md] for additional FAQ topics, among which:
 - Updating ComfyUI
 - Updating ComfyUI-Manager
 - Installing a custom node from git
 
-### 5.9.1. Windows: WSL2 and podman
+### 5.10.1. Windows: WSL2 and podman
 
 **Note:** per https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/26, you must use `-v /usr/lib/wsl:/usr/lib/wsl -e LD_LIBRARY_PATH=/usr/lib/wsl/lib` to passthrough the nvidia drivers related to opengl.
 
@@ -713,7 +713,7 @@ Once started, go to http://127.0.0.1:8188 and enjoy your first workflow (the bot
 
 After using ComfyUI, `Ctrl+C` in the `podman` terminal will terminate the WebUI. Use the `podman run ...` command from the same folder in the Ubuntu terminal to restart it and use the same `run` and `basedir` as before.
 
-### 5.9.2. Blackwell support
+### 5.10.2. Blackwell support
 
 To use the Blackwell GPU (RTX 5080/5090), you will need to make sure to install NVIDIA driver 570 or above. This driver brings support for the RTX 50xx series of GPUs and CUDA 12.8. 
 
@@ -772,7 +772,7 @@ pytorch version: 2.7.0+cu128
 
 Additional details on this can be found in [this issue](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/43).
 
-#### 5.9.2.1. Blackwell support on Unraid
+#### 5.10.2.1. Blackwell support on Unraid
 
 When using the `ubuntu24_cuda12.8-latest` image on Unraid, obtain a terminal from your Unraid WebUI and run the following commands:
 
@@ -784,7 +784,7 @@ chown 99:100 ./postvenv_script.bash
 
 Restart the container and it should install PyTorch 2.7.0 with CUDA 12.8 support.
 
-### 5.9.3. Specifying alternate folder location (ex: --output_directory) with BASE_DIRECTORY
+### 5.10.3. Specifying alternate folder location (ex: --output_directory) with BASE_DIRECTORY
 
 The `BASE_DIRECTORY` environment variable can be used to specify an alternate folder location for `input`, `output`, `temp`, `user`, `models` and `custom_nodes`.
 The ComfyUI CLI provides means to specify the location of some of those folders from the command line.
