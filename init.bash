@@ -273,6 +273,25 @@ dir_validate "${it_dir}" "mount"
 it="${it_dir}/.testfile"; touch $it && rm -f $it || error_exit "Failed to write to $it_dir"
 
 ##
+it_dir="${COMFYUSER_DIR}/mnt/pip_cache"
+if [ -d "${it_dir}" ]; then
+  echo ""; echo "== ${it_dir} present: Setting the PIP_CACHE_DIR variable to use it"
+  dir_validate "${it_dir}"
+  it="${it_dir}/.testfile" && rm -f $it || error_exit "Failed to write to pip cache directory as the comfy user"
+  export PIP_CACHE_DIR=${COMFYUSER_DIR}/mnt/pip_cache
+fi
+
+##
+it_dir="${COMFYUSER_DIR}/mnt/tmp"
+if [ -d "${it_dir}" ]; then
+  echo ""; echo "== ${it_dir} present: Setting the TMPDIR variable to use it"
+  dir_validate "${it_dir}"
+  it="${it_dir}/.testfile" && rm -f $it || error_exit "Failed to write to tmp directory as the comfy user"
+  export TMPDIR=${COMFYUSER_DIR}/mnt/tmp
+fi
+
+##
+it_dir="${COMFYUSER_DIR}/mnt"
 echo ""; echo "== Obtaining the latest version of ComfyUI (if folder not present)"
 cd $it_dir # ${COMFYUSER_DIR}/mnt -- stay here for the following checks/setups
 if [ ! -d "ComfyUI" ]; then

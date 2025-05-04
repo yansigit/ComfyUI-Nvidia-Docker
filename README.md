@@ -24,7 +24,7 @@
 When using RTX 50xx GPUs: 
 - you must use NVIDIA driver 570 (or above).
 - use the `ubuntu24_cuda12.8` container tag (or above).
-- for a compatible `PyTorch` installation, run `cp extras/PyTorch2.7.0-CUDA12.8.sh <YOURRUNFOLDER>/postvenv_script.bash` as described in the "Blackwell support" section. 
+- for a compatible `PyTorch` installation, run `cp extras/PyTorch2.7-CUDA12.8.sh <YOURRUNFOLDER>/postvenv_script.bash` as described in the "Blackwell support" section. 
 
 <h2>About "latest" tag</h2>
 
@@ -135,6 +135,7 @@ It is recommended that a container monitoring tool be available to watch the log
     - [5.6.3. BASE\_DIRECTORY](#563-base_directory)
     - [5.6.4. SECURITY\_LEVEL](#564-security_level)
     - [5.6.5. FORCE\_CHOWN](#565-force_chown)
+  - [5.6.6. run/pip\_cache and run/tmp](#566-runpip_cache-and-runtmp)
   - [5.7. ComfyUI Manager \& Security levels](#57-comfyui-manager--security-levels)
   - [5.8. Shell within the Docker image](#58-shell-within-the-docker-image)
     - [5.8.1. Alternate method](#581-alternate-method)
@@ -576,6 +577,19 @@ This option was added to support users who mount the `run` and `basedir` folders
 
 When set, it will "force chown" every sub-folder in the `run` and `basedir` folders when it first attempt to access them before verifying they are owned by the proper user.
 
+## 5.6.6. run/pip_cache and run/tmp
+
+If the `run/pip_cache` and `run/tmp` folders are present, they will be used as the cache folder for pip and the temporary directory for the comfy user. They should be created in the `run` folder before running the container starts with the user with the `WANTED_UID` and `WANTED_GID`.
+
+```bash
+# For example
+mkdir -p run basedir run/pip_cache run/tmp
+```
+
+If used, various `pip install` commands will write content to those folders (mounted as part of `run`) instead of within the container.
+This can be useful to avoid using the container's `writeable` layers, which might be limited in size on Unraid systems.
+
+Those are temporary folders, and can be deleted when the container is stopped.
 
 ## 5.7. ComfyUI Manager & Security levels
 
@@ -707,9 +721,9 @@ On 20250424, PyTorch 2.7.0 was released with support for CUDA 12.8.
 
 The `postvenv_script.bash` feature was added because with the release of PyTorch 2.7.0, for the time being, when installing on a CUDA 12.8 base image, the PyTorch wheel used appears to be for CUDA 12.6, which is incompatible. 
 
-Until `cu128` is the default, a workaround script [extras/PyTorch2.7.0-CUDA12.8.sh](./extras/PyTorch2.7.0-CUDA12.8.sh) is provided that will install PyTorch 2.7.0 with CUDA 12.8 support. 
+Until `cu128` is the default, a workaround script [extras/PyTorch2.7-CUDA12.8.sh](./extras/PyTorch2.7-CUDA12.8.sh) is provided that will install PyTorch 2.7.0 with CUDA 12.8 support. 
 
-To use it, copy the [extras/PyTorch2.7.0-CUDA12.8.sh](./extras/PyTorch2.7.0-CUDA12.8.sh) file into the `run` folder as `postvenv_script.bash` before starting the container.
+To use it, copy the [extras/PyTorch2.7-CUDA12.8.sh](./extras/PyTorch2.7-CUDA12.8.sh) file into the `run` folder as `postvenv_script.bash` before starting the container.
 
 ```bash
 ## Adapt <YOUR_EXEC_FOLDER> to the folder that contains your run folder
@@ -718,10 +732,10 @@ cd <YOUR_EXEC_FOLDER>
 ## Only use one of the wget or curl depending on what is installed on your system
 
 # wget
-wget https://raw.githubusercontent.com/mmartial/ComfyUI-Nvidia-Docker/refs/heads/main/extras/PyTorch2.7.0-CUDA12.8.sh -O ./run/postvenv_script.bash
+wget https://raw.githubusercontent.com/mmartial/ComfyUI-Nvidia-Docker/refs/heads/main/extras/PyTorch2.7-CUDA12.8.sh -O ./run/postvenv_script.bash
 
 # curl
-curl -s -L https://raw.githubusercontent.com/mmartial/ComfyUI-Nvidia-Docker/refs/heads/main/extras/PyTorch2.7.0-CUDA12.8.sh -o ./run/postvenv_script.bash
+curl -s -L https://raw.githubusercontent.com/mmartial/ComfyUI-Nvidia-Docker/refs/heads/main/extras/PyTorch2.7-CUDA12.8.sh -o ./run/postvenv_script.bash
 ```
 
 You can then run the `ubuntu24_cuda12.8` container. 
@@ -764,7 +778,7 @@ When using the `ubuntu24_cuda12.8-latest` image on Unraid, obtain a terminal fro
 
 ```bash
 cd /mnt/user/appdata/comfyui-nvidia/mnt
-wget https://raw.githubusercontent.com/mmartial/ComfyUI-Nvidia-Docker/refs/heads/main/extras/PyTorch2.7.0-CUDA12.8.sh -O ./postvenv_script.bash
+wget https://raw.githubusercontent.com/mmartial/ComfyUI-Nvidia-Docker/refs/heads/main/extras/PyTorch2.7-CUDA12.8.sh -O ./postvenv_script.bash
 chown 99:100 ./postvenv_script.bash
 ```
 
@@ -872,7 +886,8 @@ Once you are confident that you have migrated content from the old container's f
 
 # 7. Changelog
 
-- 20250426: Added support for `postvenv_script.bash` script (run after the virtual environment is set but before ComfyUI is installed/updated -- with a direct application to Blackwell GPUs to install PyTorch 2.7.0 with CUDA 12.8 support). See [extras/PyTorch2.7.0-CUDA12.8.sh](./extras/PyTorch2.7.0-CUDA12.8.sh) for details.
+- 20250503: Future proof [extras/PyTorch2.7-CUDA12.8.sh](./extras/PyTorch2.7-CUDA12.8.sh) to use `torch>=2.7` instead of `torch==2.7.0` + added `run/pip_cache` and `run/tmp` folders support
+- 20250426: Added support for `postvenv_script.bash` script (run after the virtual environment is set but before ComfyUI is installed/updated -- with a direct application to Blackwell GPUs to install PyTorch 2.7.0 with CUDA 12.8 support). See [extras/PyTorch2.7-CUDA12.8.sh](./extras/PyTorch2.7-CUDA12.8.sh) for details.
 - 20250424: No RTX50xx special case needed: PyTorch 2.7.0 is available for CUDA 12.8, only re-releasing this image
 - 20250418: use ENTRYPOINT to run the init script: replaced previous command line arguments to support command line override + Added content in `README.md` to explain the use of `comfytoo` user & a section on reinstallation without losing our existing models folder.
 - 20250413: Made CUDA 12.6.3 the new `latest` tag + Added support for `/userscripts_dir` and `/comfyui-nvidia_config.sh` 
