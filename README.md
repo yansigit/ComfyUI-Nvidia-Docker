@@ -469,6 +469,10 @@ If the file is not executable, the tool will attempt to make it executable, but 
 
 **WARNING**: This directory is used to run independent user scripts to perform additional operations that might damage your installation. This was added at the request of users trying to install packages from source. **Use with caution**. No support will be provided for issues resulting from the use of this directory. In case of trouble, it is recommended to delete the `run` folder and start a new container.
 
+Example scripts are provided to demonstrate the capability. None are executable by default. Those scripts were added to enable end users to install components that needed to be built at the time, not yet supported by ComfyUI Manager, or for which no compatible packages were available.
+If a pip version is available, it is recommended to use it instead of the `/userscripts_dir`.
+
+
 The `/userscripts_dir` is a directory that can be mounted to the container: add it to your command line with `-v /path/to/userscripts_dir:/userscripts_dir`.
 
 ```bash
@@ -479,7 +483,7 @@ This directory is used to run independent user scripts in order to perform addit
 A few examples scripts are provided in the `userscripts_dir` folder, such as installing `SageAttention` (see [userscripts_dir/20-SageAttention.sh](userscripts_dir/20-SageAttention.sh) for an example). 
 
 FAQ: 
-- The container will only run executable `.sh` scripts in this directory in alphanumerical order (`chmod -x script.sh` to disable execution of a given script)
+- The container will only run executable `.sh` scripts in this directory in alphanumerical order (`chmod -x script.sh` to disable execution of a given script). None of the scripts in the folder are executable by default.
 - Reserve its usage for installing custom nodes NOT available in ComfyUI Manager. 
 - The scripts will be run with the `comfy` user, so you will need to use `sudo` commands if needed. 
 - Some scripts might depend on previous scripts, so the order of execution is important: confirm that needed dependencies are met before performing installations.
